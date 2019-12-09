@@ -1,10 +1,4 @@
-from olympe.messages.camera import (
-	set_camera_mode,
-	set_photo_mode,
-	take_photo,
-	photo_progress,
-)
-import olympe
+# Standard Imports
 import os
 import time
 from math import pi, sin, cos
@@ -13,7 +7,11 @@ import requests
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
+from termcolor import colored
 
+
+# Olympe Imports
+import olympe
 from olympe.messages.ardrone3.GPSSettings import SetHome
 from olympe.messages.ardrone3.Piloting import TakeOff, moveBy, Landing, Emergency, PCMD
 from olympe.messages.ardrone3.PilotingState import FlyingStateChanged, PositionChanged
@@ -23,17 +21,34 @@ from olympe.messages.ardrone3.PilotingSettings import setAutonomousFlightMaxRota
 from olympe.messages.ardrone3.SpeedSettings import MaxRotationSpeed
 from olympe.messages.ardrone3.SpeedSettingsState import MaxRotationSpeedChanged
 from Cam_Ops import *
+from olympe.messages.camera import (
+	set_camera_mode,
+	set_photo_mode,
+	take_photo,
+	photo_progress,
+)
+
+# ROS Imports
+import rospy
+from std_msgs.msg import String
+from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Odometry
+
+# Custom Imports
+from math_requirements import vec_mag, quat2angle
+from standard_objects import drone_line
 
 
 def Drone_Actn(xa, drone):
+	X_Ref = []
 
 	if xa==1:
 		if (drone.get_state(FlyingStateChanged)["state"] is not FlyingStateChanged_State.hovering):
-			drone(GPSFixStateChanged(fixed=1, _timeout=10, _policy="check_wait")).wait()
 			drone(TakeOff(_no_expect=True) & FlyingStateChanged(state="hovering", _policy="wait", _timeout=5)
 			).wait()
 		else:
 			print('Drone has already taken off !')
+
 
 	if xa == 2:
 		th_r0 = 30*pi/180
@@ -47,52 +62,24 @@ def Drone_Actn(xa, drone):
 		>> FlyingStateChanged(state="hovering", _timeout=5)
 		).wait()
 
-		#ca = take_photo_burst_Move(drone, th_mov, th_r0, xf)
+
 		ca = take_Map_Video_Move(drone, th_mov, th_r0, xf)
-		#ca = take_Map_Photo_Move(drone, th_mov, th_gim, th_r0,  xf, dxm, dzm)
 
 
-	elif xa==3:
-		# drone(moveBy(0.3, 0, 0, 0)
-		# >> FlyingStateChanged(state="hovering", _timeout=5)
-		# ).wait()
+	elif xa==3:	
+		X_Ref = [0, 0, 1.5, 0, 0, 0, 0, 0, 0]
 
-		drone(PCMD(1, 0, -10, 0, 0, 0)
-		>> FlyingStateChanged(state="hovering", _timeout=5)
-		).wait()
-		print("PCMD Roll forward")
 
 	elif xa==4:
-		# drone(moveBy(-0.3, 0, 0, 0)
-		# >> FlyingStateChanged(state="hovering", _timeout=5)
-		# ).wait()
+		X_Ref = [1, 2.5, 1.5, 0, 0, 0, 0, 0, 3*pi/2]
 
-		drone(PCMD(1, 0, 10, 0, 0, 0)
-		>> FlyingStateChanged(state="hovering", _timeout=5)
-		).wait()
-		print("PCMD Roll back")
 
 	elif xa==5:
-		# drone(moveBy(0, -1, 0, 0)
-		# >> FlyingStateChanged(state="hovering", _timeout=5)
-		# ).wait()
+		X_Ref = [1.2, -2.5, 1.3, 0, 0, 0, 0, 0, 0]
 
-		drone(PCMD(1, -10, 0, 0, 0, 0)
-		>> FlyingStateChanged(state="hovering", _timeout=5)
-		).wait()
-
-		print("PCMD Roll left")
 
 	elif xa==6:
-		# drone(moveBy(0, 1, 0, 0)
-		# >> FlyingStateChanged(state="hovering", _timeout=5)
-		# ).wait()
-
-		drone(PCMD(1, 10, 0, 0, 0, 0)
-		>> FlyingStateChanged(state="hovering", _timeout=5)
-		).wait()
-
-		print("PCMD Roll right")
+		X_Ref = [1, 0, 1.5, 0, 0, 0, 0, 0, pi]
 
 	elif xa==7:
 		# drone(moveBy(0, 0, -0.2, 0)
@@ -129,10 +116,12 @@ def Drone_Actn(xa, drone):
 
 	elif xa==11:
 		drone(Landing()).wait()
-		time.sleep(10)
+		time.sleep(5)
 		drone(Emergency()).wait()
 	else:
 		print('Currently Not programmed')
+	
+	return X_Ref
 
 
 def Drone_settings(drone):
@@ -140,9 +129,3 @@ def Drone_settings(drone):
 		MaxRotationSpeed(1)
 		>> MaxRotationSpeedChanged(current=1, _policy='wait')
 	).wait()
-
-
-
-
-
-
