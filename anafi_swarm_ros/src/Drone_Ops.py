@@ -41,6 +41,7 @@ from standard_objects import drone_line
 
 def Drone_Actn(xa, drone):
 	X_Ref = []
+	X_Home = [1, 2.5, 1.5, 0, 0, 0, 0, 0, 3*pi/2]
 
 	if xa==1:
 		if (drone.get_state(FlyingStateChanged)["state"] is not FlyingStateChanged_State.hovering):
@@ -51,63 +52,33 @@ def Drone_Actn(xa, drone):
 
 
 	if xa == 2:
-		th_r0 = 30*pi/180
-		th_mov = 55*pi/180
-		th_gim = 15 # degrees
-		xf     = 2.2
-		dxm    = 0.3
-		dzm    = 0.22
-
-		drone(moveBy(0, 0, 0, th_r0)
-		>> FlyingStateChanged(state="hovering", _timeout=5)
-		).wait()
-
-
-		ca = take_Map_Video_Move(drone, th_mov, th_r0, xf)
-
+		X_Ref = X_Home
+		X_Ref[2] = 0.5
+		
 
 	elif xa==3:	
 		X_Ref = [0, 0, 1.5, 0, 0, 0, 0, 0, 0]
 
 
 	elif xa==4:
-		X_Ref = [1, 2.5, 1.5, 0, 0, 0, 0, 0, 3*pi/2]
+		X_Ref = X_Home
 
 
 	elif xa==5:
 		X_Ref = [1.2, -2.5, 1.3, 0, 0, 0, 0, 0, 0]
 
-
 	elif xa==6:
 		X_Ref = [1, 0, 1.5, 0, 0, 0, 0, 0, pi]
 
 	elif xa==7:
-		# drone(moveBy(0, 0, -0.2, 0)
-		# >> FlyingStateChanged(state="hovering", _timeout=5)
-		# ).wait()
-
-		drone(PCMD(1, 0, 0, 0, 20, 0)
-		>> FlyingStateChanged(state="hovering", _timeout=5)
-		).wait()
-
-		print("PCMD way yaw 1")
-
-
+		X_Ref = X_Home
+	
 	elif xa==8:
-		# drone(moveBy(0, 0, 0.2, 0)
-		# >> FlyingStateChanged(state="hovering", _timeout=5)
-		# ).wait()
+		X_Ref = X_Home
 
-		drone(PCMD(1, 0, 0, 0, -20, 0)
-		>> FlyingStateChanged(state="hovering", _timeout=5)
-		).wait()
-
-		print("PCMD way yaw 2")
 
 	elif xa==9:
-		drone(moveBy(0, 0, 0, 5*pi/180)
-		>> FlyingStateChanged(state="hovering", _timeout=5)
-		).wait()
+		X_Ref = X_Home
 		
 	elif xa==10:
 		drone(moveBy(0, 0, 0, -5*pi/180)

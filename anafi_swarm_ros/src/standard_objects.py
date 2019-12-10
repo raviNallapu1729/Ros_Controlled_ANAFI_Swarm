@@ -2,8 +2,10 @@
 import olympe
 from olympe.messages.ardrone3.Piloting import TakeOff, moveBy, Landing, Emergency, PCMD
 from olympe.messages.ardrone3.SpeedSettings import MaxRotationSpeed
+from olympe.messages.gimbal import set_max_speed, set_target
 
 # Stabdard Imports
+import time
 import numpy as np
 from termcolor import colored
 import math
@@ -19,23 +21,34 @@ class Anafi_drone:
         self.drone = olympe.Drone(self.D_IP, loglevel=0)
         self.drone.connection()
 
-        self.loop_rate = 10.0                           # Set loop rate (Hz)
+        self.loop_rate = 25.0                           # Set loop rate (Hz)
         self.X_tol     = 0.5                            # Position tolerance (m)
         self.V_tol     = 0.1                            # Velocity tolerance(m/s)
         self.yw_tol    = 2*pi/180                       # Yaw rate tolerance (rads)
         self.Tt_MX     = 10                             # Max tilt setting for yaw and pitch (deg)
         self.Tl_Mx     = 4                              # Max vertical speed (m/s)
-        self.YR_MX     = 22                             # Max yaw rate deg/s
+        self.YR_MX     = 22                             # Max yaw rate (deg/s)
+        self.GB_MX     = 50                             # Max gimbal rate (deg/s)
         self.thr_vec = [self.Tt_MX, self.Tt_MX, self.Tl_Mx, self.YR_MX] # Drone settings
-        self.gn_mat = [4.05, 8.6, 4, 6, 1, 2]        # Controller Gains
+        self.gn_mat = [3.5, 15, 4, 6, 1, 2]        # Controller Gains
 
+        # Set Rotation Speed
         maxYawRate = self.drone(MaxRotationSpeed(self.YR_MX)).wait()
         if maxYawRate.success():
-            print(colored(("Yaw rate set to: ", self.YR_MX),"green"))
+            print(colored(("Max Yaw rate set to: ", self.YR_MX),"green"))
         elif maxYawRate.timedout():
             print(colored(("Yaw rate action failed"),"green"))
         else:
             print(colored(("Yaw rate action in progress"),"green"))
+
+        # Set Gimbal Speed
+        max_GMB_Rate = self.drone(set_max_speed(gimbal_id=0, yaw = self.GB_MX/5, pitch = self.GB_MX, roll = self.GB_MX/5)).wait()
+        if max_GMB_Rate.success():
+            print(colored(("Max gimbal pitch rate set to: ", self.GB_MX),"green"))
+        elif max_GMB_Rate.timedout():
+            print(colored(("gimbal rate action failed"),"green"))
+        else:
+            print(colored(("gimbal rate action in progress"),"green"))
 
         
 class Waypoint():
@@ -64,12 +77,7 @@ def drone_line(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol):
     y_dr   = X_St[1]
     z_dr   = X_St[2]
 
-    vx_dr   = X_St[3]
-    vy_dr   = X_St[4]
-    vz_dr   = X_St[5]
-
     yaw_dr = X_St[8]
-
 
     # Reference
     x_R    = X_Ref[0]
@@ -210,8 +218,6 @@ def R3_Mat_Drone_Commands(state_Vec, ref_Vec, gn_mat):
     yaw_dr  = state_Vec[8]
     th_R1   = yaw_dr
 
-
-
     # Errors
     x_ER   = x_R - x_dr
     y_ER   = y_R - y_dr
@@ -240,3 +246,8 @@ def R3_Mat_Drone_Commands(state_Vec, ref_Vec, gn_mat):
     dv2 = R3.dot(d_in)  # Drone frame commands
 
     return dv2, Uyaw
+
+
+def gimbal_target(drone, abs_ang):
+        drone(set_target(gimbal_id = 0, control_mode = "position", yaw_frame_of_reference = "absolute", yaw = 0, 
+        pitch_frame_of_reference = "absolute", pitch = abs_ang,  roll_frame_of_reference ="absolute", roll = 0))

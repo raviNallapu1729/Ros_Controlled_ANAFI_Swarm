@@ -3,10 +3,11 @@
 # Standard Imports
 import rospy
 import math
-from math import sin, cos, atan2, acos, pi
+from math import sin, cos, atan2, acos, asin, pi
 import time
 import numpy as np
 from termcolor import colored
+from threading import Thread
 import sys
 from signal import signal, SIGINT
 import time
@@ -222,6 +223,77 @@ def Drone_Circle(Dr_Obj, X_Ref):
     print( colored( ("Circle commands sent !!"), 'green') )
 
 
+def Drone_Map_Opn(Dr_Obj, X_Ref, X_Tar):
+
+    global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
+
+    # Pose Subscriber:
+    Pose_Topic = "/vicon/anafi_1/odom"
+    gn_mat  = Dr_Obj.gn_mat 
+    thr_vec = Dr_Obj.thr_vec
+    X_tol   = Dr_Obj.X_tol
+    V_tol   = Dr_Obj.V_tol
+    yw_tol  = Dr_Obj.yw_tol
+    lr      = Dr_Obj.loop_rate
+    looprate = rospy.Rate(lr) 
+
+    print( colored( ("Going to Home !!"), 'cyan') )
+    while True:
+        pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
+        X_St = [x, y, z, vx, vy, vz, roll, pitch, yaw]
+        Er = np.array(X_Ref) - np.array(X_St)
+        r_er = vec_mag(Er[0:3])
+        v_er = vec_mag(Er[3:6])
+
+        drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol)
+        if r_er<=X_tol and v_er<=V_tol:
+            print( colored( ("Drone Reached!"), 'green') )
+            break
+        looprate.sleep()
+
+    X_Ref = [1.5, -2, 0.5, 0, 0, 0, 0, 0, 0]  
+
+    Map_traj = Thread( target=Drone_Center_Track, args=((Dr_Obj, X_Ref)) )
+    Map_traj.daemon = True
+
+    Moon_El_Track = Thread( target=gimbal_track_moon, args=((Dr_Obj, X_Ref, X_Tar)) )
+    Moon_El_Track.daemon = True
+
+    Map_traj.start()
+    Moon_El_Track.start()
+
+
+def gimbal_track_moon(Dr_Obj, X_Ref, X_Tar):
+    global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
+    # Pose Subscriber:
+    Pose_Topic = "/vicon/anafi_1/odom"
+    lr      = Dr_Obj.loop_rate
+    X_tol   = Dr_Obj.X_tol
+    V_tol   = Dr_Obj.V_tol
+    looprate = rospy.Rate(lr) 
+    print( colored( ("Gimbal Action Started !!"), 'cyan') )
+    
+    while True:
+        pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
+        X_St = [x, y, z, vx, vy, vz, roll, pitch, yaw]
+        Er = np.array(X_Ref) - np.array(X_St)
+        DT = np.array(X_Tar) - np.array(X_St[0:3])
+        r_tar = vec_mag(DT)
+
+        r_er = vec_mag(Er[0:3])
+        v_er = vec_mag(Er[3:6])
+
+        th0 = asin(DT[2]/r_tar)*180/pi
+        # print(colored((th0), "red"))
+        gimbal_target(drone, th0)
+
+
+        if r_er<=X_tol and v_er<=V_tol:
+            print( colored( ("Gimbal Action Completed!"), 'green') )
+            break
+        looprate.sleep()
+
+
 
 if __name__ == '__main__':
     try:
@@ -244,11 +316,12 @@ if __name__ == '__main__':
         x0 = 11
         # Gains
         gn_mat = [3.5, 8.5, 4, 6, 1, 2]
+        X_Tar  = [0, 0, 1.5]
 
 
         print('\x1bc')
         acn_N = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20]
-        acn   = ["Take off", "Mapping", "Go to 0,0,1.5", "Go Home and point out", "Track Center","Circle Origin","Move Up", "Move Down", "Yaw CW", "Yaw CCW", "Land", "Exit" ]
+        acn   = ["Take off", "Mapping", "Go to 0,0,1.5", "Go Home and point out", "Track Center","Circle Origin","Gimbal Up +45", "Gimbal Down -45", "Yaw CW", "Yaw CCW", "Land", "Exit" ]
         n_actn = len(acn)
 
         while(x0<20):
@@ -258,7 +331,9 @@ if __name__ == '__main__':
                 print('\x1bc')
                 print( colored( ('Starting action: ' +  acn[x0-1] + '\n'), "green") )
                 X_Ref = Drone_Actn(x0, drone)
-                if x0==3:
+                if x0==2:
+                    Drone_Map_Opn(Dr_cl, X_Ref, X_Tar)
+                elif x0==3:
                     Drone_Line_Track(Dr_cl, X_Ref)
                 elif x0==4:
                     Drone_Move_Orient(Dr_cl, X_Ref)
@@ -266,6 +341,11 @@ if __name__ == '__main__':
                     Drone_Center_Track(Dr_cl, X_Ref)
                 elif x0==6:
                     Drone_Circle(Dr_cl, X_Ref)
+                elif x0==7:
+                    gimbal_target(drone, 45)
+                elif x0==8:
+                    gimbal_target(drone, -45)
+        
 
                 x0, c = Print_Drone_Actns(acn,  acn_N)
 
