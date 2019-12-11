@@ -47,22 +47,21 @@ def Drone_Actn(xa, drone):
 		if (drone.get_state(FlyingStateChanged)["state"] is not FlyingStateChanged_State.hovering):
 			drone(TakeOff(_no_expect=True) & FlyingStateChanged(state="hovering", _policy="wait", _timeout=5)
 			).wait()
+			# drone.start_piloting()
 		else:
-			print('Drone has already taken off !')
+			print(colored(('Drone has already taken off !'), "green"))
 
 
 	if xa == 2:
 		X_Ref = X_Home
-		X_Ref[2] = 0.5
-		
+		X_Ref[0] = 1.2
+		X_Ref[2] = 0.75	
 
 	elif xa==3:	
 		X_Ref = [0, 0, 1.5, 0, 0, 0, 0, 0, 0]
 
-
 	elif xa==4:
 		X_Ref = X_Home
-
 
 	elif xa==5:
 		X_Ref = [1.2, -2.5, 1.3, 0, 0, 0, 0, 0, 0]
@@ -76,7 +75,6 @@ def Drone_Actn(xa, drone):
 	elif xa==8:
 		X_Ref = X_Home
 
-
 	elif xa==9:
 		X_Ref = X_Home
 		
@@ -86,6 +84,7 @@ def Drone_Actn(xa, drone):
 		).wait()
 
 	elif xa==11:
+		drone.stop_piloting()
 		drone(Landing()).wait()
 		time.sleep(5)
 		drone(Emergency()).wait()

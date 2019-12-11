@@ -4,12 +4,34 @@ from olympe.messages.ardrone3.Piloting import TakeOff, moveBy, Landing, Emergenc
 from olympe.messages.ardrone3.SpeedSettings import MaxRotationSpeed
 from olympe.messages.gimbal import set_max_speed, set_target
 
+from olympe.messages.camera import (
+    set_camera_mode,
+    set_photo_mode,
+    take_photo,
+    photo_progress,
+    recording_progress,
+    set_recording_mode,
+    set_exposure_settings,
+    set_autorecord,
+    stop_recording,
+    start_recording
+
+)
+
 # Stabdard Imports
 import time
 import numpy as np
 from termcolor import colored
 import math
 from math import sin, cos, atan2, sqrt, pi
+import os
+from os import mkdir
+from datetime import datetime
+import re
+import requests
+import shutil
+import tempfile
+import xml.etree.ElementTree as ET
 
 # Custom Functions
 from math_requirements import compute_yaw_Error, New_Sign, vec_mag
@@ -20,9 +42,11 @@ class Anafi_drone:
         self.D_IP = D_IP
         self.drone = olympe.Drone(self.D_IP, loglevel=0)
         self.drone.connection()
+        self.drone(stop_recording(cam_id=0)).wait()
+        self.drone(set_camera_mode(cam_id=0, value="recording")).wait()
 
-        self.loop_rate = 25.0                           # Set loop rate (Hz)
-        self.X_tol     = 0.5                            # Position tolerance (m)
+        self.loop_rate = 30.0                           # Set loop rate (Hz)
+        self.X_tol     = 0.3                            # Position tolerance (m)
         self.V_tol     = 0.1                            # Velocity tolerance(m/s)
         self.yw_tol    = 2*pi/180                       # Yaw rate tolerance (rads)
         self.Tt_MX     = 10                             # Max tilt setting for yaw and pitch (deg)
@@ -30,7 +54,13 @@ class Anafi_drone:
         self.YR_MX     = 22                             # Max yaw rate (deg/s)
         self.GB_MX     = 50                             # Max gimbal rate (deg/s)
         self.thr_vec = [self.Tt_MX, self.Tt_MX, self.Tl_Mx, self.YR_MX] # Drone settings
-        self.gn_mat = [3.5, 15, 4, 6, 1, 2]        # Controller Gains
+        self.gn_mat = [3.6, 18, 4, 5, 9, 2]        # Controller Gains
+        #self.gn_mat = [6, 18, 4, 5, 11, 2]
+        self.ANAFI_IP = D_IP   # Real Drone
+
+        # Drone web server URL
+        self.ANAFI_URL = "http://{}/".format(self.ANAFI_IP)
+        self.ANAFI_MEDIA_API_URL = self.ANAFI_URL + "api/v1/media/medias/"
 
         # Set Rotation Speed
         maxYawRate = self.drone(MaxRotationSpeed(self.YR_MX)).wait()
@@ -89,20 +119,23 @@ def drone_line(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol):
     r_er = vec_mag(Er[0:3])
     print(colored(("Position error: ", r_er),"red"))
 
+    UR, UP, UTh, UYr = PCMD_Controller(X_St, X_Ref, gn_mat, thr_vec)
+    drone(PCMD(1, UR, UP, UYr, UTh , 0))
 
-    if r_er>=X_tol:
 
-        UR, UP, UTh, UYr = PCMD_Controller(X_St, X_Ref, gn_mat, thr_vec)
+    # if r_er>=X_tol:
 
-        drone(PCMD(1, UR, UP, UYr, UTh , 0))
-        print(colored(("Drone position: ", x_dr, y_dr, z_dr, yaw_dr*180/pi),"yellow"))
-        print(colored(("Target position: ", x_R, y_R, z_R, yaw_R*180/pi),"green"))
-        print(colored(("Controller sent commands: ", UR, UP, UYr, UTh),"cyan"))
+        # UR, UP, UTh, UYr = PCMD_Controller(X_St, X_Ref, gn_mat, thr_vec)
 
-    else:
-        print(colored(("Drone near target, no command sent"),"cyan"))
-        print(colored(("Drone position: ", x_dr, y_dr, z_dr, yaw_dr*180/pi),"yellow"))
-        print(colored(("Target position: ", x_R, y_R, z_R, yaw_R*180/pi),"green"))
+        # drone(PCMD(1, UR, UP, UYr, UTh , 0))
+        # print(colored(("Drone position: ", x_dr, y_dr, z_dr, yaw_dr*180/pi),"yellow"))
+        # print(colored(("Target position: ", x_R, y_R, z_R, yaw_R*180/pi),"green"))
+        # print(colored(("Controller sent commands: ", UR, UP, UYr, UTh),"cyan"))
+
+    # else:
+        # print(colored(("Drone near target, no command sent"),"cyan"))
+        # print(colored(("Drone position: ", x_dr, y_dr, z_dr, yaw_dr*180/pi),"yellow"))
+        # print(colored(("Target position: ", x_R, y_R, z_R, yaw_R*180/pi),"green"))
 
 
 def drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol):
@@ -251,3 +284,16 @@ def R3_Mat_Drone_Commands(state_Vec, ref_Vec, gn_mat):
 def gimbal_target(drone, abs_ang):
         drone(set_target(gimbal_id = 0, control_mode = "position", yaw_frame_of_reference = "absolute", yaw = 0, 
         pitch_frame_of_reference = "absolute", pitch = abs_ang,  roll_frame_of_reference ="absolute", roll = 0))
+
+
+
+def filecreation():
+    mydir = os.path.join(
+        os.getcwd(), 
+        datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+    try:
+        os.makedirs(mydir)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise  # This was not a "directory exist" error
+    return(mydir)

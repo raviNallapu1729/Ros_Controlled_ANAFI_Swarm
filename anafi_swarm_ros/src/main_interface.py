@@ -12,6 +12,11 @@ import sys
 from signal import signal, SIGINT
 import time
 import os
+import re
+import requests
+import shutil
+import tempfile
+import xml.etree.ElementTree as ET
 
 # ROS imports
 import rospy
@@ -24,6 +29,13 @@ from math_requirements import quat2angle, vec_mag, wrapTo2Pi    # Conversions
 from Console_text import  Print_Drone_Actns          # Import Text Files
 from standard_objects import *                       # Import Drone Class
 from Drone_Ops import Drone_Actn                     # Import Temporary Dependencies
+
+# Camera Functions
+from olympe.messages.camera import (
+    recording_progress,
+    stop_recording,
+    start_recording
+)
 
 
 x = 0
@@ -82,7 +94,7 @@ def poseCallback(data):
 
 def Drone_land(signal_recieved, frame):
 
-    #drone.stop_piloting()
+    drone.stop_piloting()
     time.sleep(3)
     Drone_Actn(11, drone)
     print("Simulation Exited")
@@ -204,6 +216,9 @@ def Drone_Circle(Dr_Obj, X_Ref):
             break
         looprate.sleep()
 
+    lr2      = 50
+    looprate = rospy.Rate(lr2) 
+    dt       = 1/lr2 
 
     print( colored( ("Starting Circle !!"), 'cyan') )
     for t in np.arange(0, 2*Tp, dt):
@@ -223,44 +238,190 @@ def Drone_Circle(Dr_Obj, X_Ref):
     print( colored( ("Circle commands sent !!"), 'green') )
 
 
-def Drone_Map_Opn(Dr_Obj, X_Ref, X_Tar):
+def Drone_Map_Opn(Dr_Obj, X_Ref, X_Tar, ran_V):
+    
+    thr_vec = Dr_Obj.thr_vec
+    X_tol   = Dr_Obj.X_tol
+    yw_tol  = Dr_Obj.yw_tol
+
+
+    Drone_Move_Orient(Dr_Obj, X_Ref)
+    print(colored( ("Moved home, executing map command!"), "green"))
+    time.sleep(0.5)
+
+    X_Ref2 = X_Ref
+    y0     = X_Ref[1]
 
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
-    # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_1/odom"
-    gn_mat  = Dr_Obj.gn_mat 
-    thr_vec = Dr_Obj.thr_vec
-    X_tol   = Dr_Obj.X_tol
-    V_tol   = Dr_Obj.V_tol
-    yw_tol  = Dr_Obj.yw_tol
-    lr      = Dr_Obj.loop_rate
-    looprate = rospy.Rate(lr) 
+    vyT = -0.15/2
+    Tp  = 60
 
-    print( colored( ("Going to Home !!"), 'cyan') )
-    while True:
+    lr       = 25.0
+    looprate = rospy.Rate(lr) 
+    dt       = 1.0/lr 
+
+    gn_mat = [5, 15, 4, 6, 9, 1.8]        # Controller Gains
+
+
+    for t in np.arange(0, Tp+dt, dt):
+
         pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
         X_St = [x, y, z, vx, vy, vz, roll, pitch, yaw]
-        Er = np.array(X_Ref) - np.array(X_St)
-        r_er = vec_mag(Er[0:3])
-        v_er = vec_mag(Er[3:6])
 
+        X_Ref[1] = y0 + vyT*t
+        X_Ref[4] =  vyT
+        X_Ref[8] = wrapTo2Pi(atan2(-y, -x))
+
+        DT = np.array(X_Tar) - np.array(X_St[0:3])
+        r_tar = vec_mag(DT)
+        th0 = asin(DT[2]/r_tar)*180/pi
+
+        print(colored( ("Commanded Pose: ", X_Ref[0], X_Ref[1], X_Ref[2],X_Ref[8]*(180/pi) ), "blue"))
+        
+        gimbal_target(drone, th0)
+        drone_line(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol)
+
+        looprate.sleep()
+    print(colored( ("Line command Finished !!" ), "blue"))
+    drone.stop_piloting()
+    time.sleep(0.5)
+    X_Ref2[1] = -2.0
+    Drone_Move_Orient(Dr_Obj, X_Ref2)
+    print(colored( ("Mapping done !! Holding drone at Final Desitination!"), "green"))
+
+
+def record_and_fetch(Dr_Obj, X_Tar, ran_V, rec_Vid):
+    Pose_Topic = "/vicon/anafi_1/odom"
+    pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
+
+    global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
+    rec_Vid             = 0
+    ANAFI_MEDIA_API_URL = Dr_Obj.ANAFI_MEDIA_API_URL
+    ANAFI_URL           = Dr_Obj.ANAFI_URL
+
+
+    X_St = [x, y, z, vx, vy, vz, roll, pitch, yaw]
+    DT = np.array(X_Tar) - np.array(X_St[0:3])
+    r_tar = vec_mag(DT)
+
+    if r_tar<=1.001*ran_V and rec_Vid==0:
+        print(colored( ("Recording Started"), "blue"))
+        drone(start_recording(cam_id=0))
+
+    elif r_tar<=1.001*ran_V and rec_Vid==1:
+        print(colored( ("Recording In Progress"), "blue"))
+
+    elif r_tar>.001*ran_V and rec_Vid==2:
+        print(colored( ("Recording Completed"), "blue"))
+        drone(stop_recording(cam_id=0))
+
+        photo_saved = drone(recording_progress(result="stopped", _policy="wait"))
+        photo_saved.wait()
+
+        media_id = photo_saved.received_events().last().args["media_id"]
+        print(media_id)
+        os.chdir("/home/rnallapu/code/Results")
+        media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
+        media_info_response.raise_for_status()
+        download_dir = tempfile.mkdtemp()
+        Res_dir = filecreation()
+            #tempfile.gettempdir()
+        for resource in media_info_response.json()["resources"]:
+            image_response = requests.get(ANAFI_URL + resource["url"], stream=True)
+            download_path = os.path.join(download_dir, resource["resource_id"])
+            print(colored( ("File Transfer in progress"), "blue"))
+
+            image_response.raise_for_status()
+
+            with open(download_path, "wb") as image_file:
+                shutil.copyfileobj(image_response.raw, image_file)
+            shutil.copy2(download_path, Res_dir)
+            print(colored( ("File Transfer Completed !!!!!!!!!!"), "green"))
+        rec_Vid=2
+
+
+def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
+    
+    thr_vec = Dr_Obj.thr_vec
+    X_tol   = Dr_Obj.X_tol
+    yw_tol  = Dr_Obj.yw_tol
+    lr      = 30
+    looprate = rospy.Rate(lr) 
+    dt       = 1.0/lr 
+
+    ANAFI_MEDIA_API_URL = Dr_Obj.ANAFI_MEDIA_API_URL
+    ANAFI_URL           = Dr_Obj.ANAFI_URL
+
+
+    Drone_Move_Orient(Dr_Obj, X_Ref)
+    print(colored( ("Moved home, executing map command!"), "green"))
+    time.sleep(0.5)
+
+    X_Ref2 = X_Ref
+    y0     = X_Ref[1]
+
+    global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
+    # Pose_Topic = "/vicon/anafi_1/odom"
+
+    vyT = -0.15
+    Tp = 30
+
+    gn_mat = [6.2, 18, 4, 6, 9, 1.8]        # Controller Gains
+    rec_Vid = 0
+
+    for t in np.arange(0, Tp+dt, dt):
+
+        pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
+        X_St = [x, y, z, vx, vy, vz, roll, pitch, yaw]
+
+        X_Ref[1] = y0 + vyT*t
+        X_Ref[4] =  vyT
+        X_Ref[8] = wrapTo2Pi(atan2(-y, -x))
+
+        DT = np.array(X_Tar) - np.array(X_St[0:3])
+        r_tar = vec_mag(DT)
+        th0 = asin(DT[2]/r_tar)*180/pi
+
+        gimbal_target(drone, th0)
         drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol)
-        if r_er<=X_tol and v_er<=V_tol:
-            print( colored( ("Drone Reached!"), 'green') )
-            break
+
+        if r_tar<=1.01*ran_V and rec_Vid == 0:
+            rec_Vid = 1
+            drone(start_recording(cam_id=0))
+            print(colored( ("Recording Started"), "blue"))
+
+        elif r_tar>1.01*ran_V and rec_Vid == 1:
+            rec_Vid = 2
+            print(colored( ("Recording Completed"), "blue"))
+            drone(stop_recording(cam_id=0))
+            photo_saved = drone(recording_progress(result="stopped", _policy="wait"))
+            photo_saved.wait()
+            media_id = photo_saved.received_events().last().args["media_id"]
+            print(media_id)
+            os.chdir("/home/rnallapu/code/Results")
+            media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
+            media_info_response.raise_for_status()
+            download_dir = tempfile.mkdtemp()
+            Res_dir = filecreation()
+                #tempfile.gettempdir()
+            for resource in media_info_response.json()["resources"]:
+                image_response = requests.get(ANAFI_URL + resource["url"], stream=True)
+                download_path = os.path.join(download_dir, resource["resource_id"])
+                print(colored( ("File Transfer in progress"), "blue"))
+
+                image_response.raise_for_status()
+
+                with open(download_path, "wb") as image_file:
+                    shutil.copyfileobj(image_response.raw, image_file)
+                shutil.copy2(download_path, Res_dir)
+                print(colored( ("File Transfer Completed !!!!!!!!!!"), "green"))
+            
         looprate.sleep()
 
-    X_Ref = [1.5, -2, 0.5, 0, 0, 0, 0, 0, 0]  
-
-    Map_traj = Thread( target=Drone_Center_Track, args=((Dr_Obj, X_Ref)) )
-    Map_traj.daemon = True
-
-    Moon_El_Track = Thread( target=gimbal_track_moon, args=((Dr_Obj, X_Ref, X_Tar)) )
-    Moon_El_Track.daemon = True
-
-    Map_traj.start()
-    Moon_El_Track.start()
+    X_Ref2[1] = -2.0
+    Drone_Move_Orient(Dr_Obj, X_Ref2)
+    print(colored( ("Mapping done !! Holding drone at Final Desitination!"), "green"))
 
 
 def gimbal_track_moon(Dr_Obj, X_Ref, X_Tar):
@@ -317,6 +478,7 @@ if __name__ == '__main__':
         # Gains
         gn_mat = [3.5, 8.5, 4, 6, 1, 2]
         X_Tar  = [0, 0, 1.5]
+        Vran = 2
 
 
         print('\x1bc')
@@ -332,7 +494,7 @@ if __name__ == '__main__':
                 print( colored( ('Starting action: ' +  acn[x0-1] + '\n'), "green") )
                 X_Ref = Drone_Actn(x0, drone)
                 if x0==2:
-                    Drone_Map_Opn(Dr_cl, X_Ref, X_Tar)
+                    Drone_Map_Opn(Dr_cl, X_Ref, X_Tar, Vran)
                 elif x0==3:
                     Drone_Line_Track(Dr_cl, X_Ref)
                 elif x0==4:
@@ -346,7 +508,6 @@ if __name__ == '__main__':
                 elif x0==8:
                     gimbal_target(drone, -45)
         
-
                 x0, c = Print_Drone_Actns(acn,  acn_N)
 
             else:
