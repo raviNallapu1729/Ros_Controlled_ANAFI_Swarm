@@ -254,14 +254,15 @@ def Drone_Map_Opn(Dr_Obj, X_Ref, X_Tar, ran_V):
 
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
-    vyT = -0.15/2
-    Tp  = 60
+    vyT = -0.15
+    Tp  = 30
 
-    lr       = 25.0
+    lr       = 30
     looprate = rospy.Rate(lr) 
     dt       = 1.0/lr 
 
-    gn_mat = [5, 15, 4, 6, 9, 1.8]        # Controller Gains
+    gn_mat = [5, 15, 4, 4, 12, 1.8]        # Controller Gains
+    X_tol   = 0.1
 
 
     for t in np.arange(0, Tp+dt, dt):
@@ -277,7 +278,7 @@ def Drone_Map_Opn(Dr_Obj, X_Ref, X_Tar, ran_V):
         r_tar = vec_mag(DT)
         th0 = asin(DT[2]/r_tar)*180/pi
 
-        print(colored( ("Commanded Pose: ", X_Ref[0], X_Ref[1], X_Ref[2],X_Ref[8]*(180/pi) ), "blue"))
+        # print(colored( ("Commanded Pose: ", X_Ref[0], X_Ref[1], X_Ref[2],X_Ref[8]*(180/pi) ), "blue"))
         
         gimbal_target(drone, th0)
         drone_line(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol)
@@ -346,9 +347,8 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
     yw_tol  = Dr_Obj.yw_tol
-    lr      = 30
-    looprate = rospy.Rate(lr) 
-    dt       = 1.0/lr 
+
+
 
     ANAFI_MEDIA_API_URL = Dr_Obj.ANAFI_MEDIA_API_URL
     ANAFI_URL           = Dr_Obj.ANAFI_URL
@@ -367,8 +367,15 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
     vyT = -0.15
     Tp = 30
 
-    gn_mat = [6.2, 18, 4, 6, 9, 1.8]        # Controller Gains
+    lr       = 35
+    looprate = rospy.Rate(lr) 
+    dt       = 1.0/lr 
+    X_tol   = 0.1
+
+    gn_mat = [5, 15, 4, 4, 12, 1.8]        # Controller Gains
     rec_Vid = 0
+
+    photo_saved = drone(recording_progress(result="stopped", _policy="wait"))
 
     for t in np.arange(0, Tp+dt, dt):
 
@@ -385,6 +392,10 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
 
         gimbal_target(drone, th0)
         drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol)
+        print(colored(("Distance to target: ", r_tar),"red"))
+        print(colored(("Record Status: ", rec_Vid),"red"))
+        print(colored(("Distance threshhold: ", 1.01*ran_V),"blue"))
+        print(colored(("Gimbal angle computed: ", th0),"blue"))
 
         if r_tar<=1.01*ran_V and rec_Vid == 0:
             rec_Vid = 1
@@ -395,32 +406,39 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
             rec_Vid = 2
             print(colored( ("Recording Completed"), "blue"))
             drone(stop_recording(cam_id=0))
-            photo_saved = drone(recording_progress(result="stopped", _policy="wait"))
             photo_saved.wait()
-            media_id = photo_saved.received_events().last().args["media_id"]
-            print(media_id)
-            os.chdir("/home/rnallapu/code/Results")
-            media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
-            media_info_response.raise_for_status()
-            download_dir = tempfile.mkdtemp()
-            Res_dir = filecreation()
-                #tempfile.gettempdir()
-            for resource in media_info_response.json()["resources"]:
-                image_response = requests.get(ANAFI_URL + resource["url"], stream=True)
-                download_path = os.path.join(download_dir, resource["resource_id"])
-                print(colored( ("File Transfer in progress"), "blue"))
-
-                image_response.raise_for_status()
-
-                with open(download_path, "wb") as image_file:
-                    shutil.copyfileobj(image_response.raw, image_file)
-                shutil.copy2(download_path, Res_dir)
-                print(colored( ("File Transfer Completed !!!!!!!!!!"), "green"))
             
         looprate.sleep()
+    time.sleep(0.5)
+    
 
-    X_Ref2[1] = -2.0
-    Drone_Move_Orient(Dr_Obj, X_Ref2)
+    # X_Ref2[1] = -2.0
+    # Drone_Move_Orient(Dr_Obj, X_Ref2)
+    drone(Landing()).wait()
+    print(colored( ("Starting Transfer"), "green"))
+    
+    # photo_saved = drone(recording_progress(result="stopped", _policy="wait"))
+    # photo_saved.wait()
+    media_id = photo_saved.received_events().last().args["media_id"]
+    print(colored( (media_id), "green"))
+
+    os.chdir("/home/rnallapu/code/Results")
+    media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
+    media_info_response.raise_for_status()
+    download_dir = tempfile.mkdtemp()
+    Res_dir = filecreation()
+        #tempfile.gettempdir()
+    for resource in media_info_response.json()["resources"]:
+        image_response = requests.get(ANAFI_URL + resource["url"], stream=True)
+        download_path = os.path.join(download_dir, resource["resource_id"])
+        print(colored( ("File Transfer in progress"), "blue"))
+
+        image_response.raise_for_status()
+
+        with open(download_path, "wb") as image_file:
+            shutil.copyfileobj(image_response.raw, image_file)
+        shutil.copy2(download_path, Res_dir)
+        print(colored( ("File Transfer Completed !!!!!!!!!!"), "green"))
     print(colored( ("Mapping done !! Holding drone at Final Desitination!"), "green"))
 
 
@@ -477,8 +495,8 @@ if __name__ == '__main__':
         x0 = 11
         # Gains
         gn_mat = [3.5, 8.5, 4, 6, 1, 2]
-        X_Tar  = [0, 0, 1.5]
-        Vran = 2
+        X_Tar  = [0, 0, 1.3]
+        Vran = 1.33
 
 
         print('\x1bc')
@@ -494,7 +512,7 @@ if __name__ == '__main__':
                 print( colored( ('Starting action: ' +  acn[x0-1] + '\n'), "green") )
                 X_Ref = Drone_Actn(x0, drone)
                 if x0==2:
-                    Drone_Map_Opn(Dr_cl, X_Ref, X_Tar, Vran)
+                    Drone_Map_Opn2(Dr_cl, X_Ref, X_Tar, Vran)
                 elif x0==3:
                     Drone_Line_Track(Dr_cl, X_Ref)
                 elif x0==4:

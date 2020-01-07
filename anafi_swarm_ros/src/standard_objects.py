@@ -46,7 +46,7 @@ class Anafi_drone:
         self.drone(set_camera_mode(cam_id=0, value="recording")).wait()
 
         self.loop_rate = 30.0                           # Set loop rate (Hz)
-        self.X_tol     = 0.3                            # Position tolerance (m)
+        self.X_tol     = 0.5                            # Position tolerance (m)
         self.V_tol     = 0.1                            # Velocity tolerance(m/s)
         self.yw_tol    = 2*pi/180                       # Yaw rate tolerance (rads)
         self.Tt_MX     = 10                             # Max tilt setting for yaw and pitch (deg)
@@ -118,19 +118,26 @@ def drone_line(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol):
     Er = np.array(X_Ref) - np.array(X_St)
     r_er = vec_mag(Er[0:3])
     print(colored(("Position error: ", r_er),"red"))
+    
+    
 
-    UR, UP, UTh, UYr = PCMD_Controller(X_St, X_Ref, gn_mat, thr_vec)
-    drone(PCMD(1, UR, UP, UYr, UTh , 0))
+    # UR, UP, UTh, UYr = PCMD_Controller(X_St, X_Ref, gn_mat, thr_vec)
+    # drone(PCMD(1, UR, UP, UYr, UTh , 0))
+
+    # drone.start_piloting()
+    # drone.piloting_pcmd(UR, UP, UYr, UTh , 0)
 
 
-    # if r_er>=X_tol:
+    if r_er>=X_tol:
 
-        # UR, UP, UTh, UYr = PCMD_Controller(X_St, X_Ref, gn_mat, thr_vec)
+        UR, UP, UTh, UYr = PCMD_Controller(X_St, X_Ref, gn_mat, thr_vec)
 
         # drone(PCMD(1, UR, UP, UYr, UTh , 0))
-        # print(colored(("Drone position: ", x_dr, y_dr, z_dr, yaw_dr*180/pi),"yellow"))
-        # print(colored(("Target position: ", x_R, y_R, z_R, yaw_R*180/pi),"green"))
-        # print(colored(("Controller sent commands: ", UR, UP, UYr, UTh),"cyan"))
+        drone.start_piloting()
+        drone.piloting_pcmd(UR, UP, UYr, UTh , 0)
+        print(colored(("Drone position: ", x_dr, y_dr, z_dr, yaw_dr*180/pi),"yellow"))
+        print(colored(("Target position: ", x_R, y_R, z_R, yaw_R*180/pi),"green"))
+        print(colored(("Controller sent commands: ", UR, UP, UYr, UTh),"cyan"))
 
     # else:
         # print(colored(("Drone near target, no command sent"),"cyan"))
@@ -161,18 +168,22 @@ def drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol):
     r_er = vec_mag(Er[0:3])
     Y_ER = compute_yaw_Error(yaw_R, yaw_dr)
 
-    print(colored(("Position error: ", r_er),"red"))
-    print(colored(("Yaw error: ", Y_ER),"red"))
+    # print(colored(("Position error: ", r_er),"red"))
+    # print(colored(("Yaw error: ", Y_ER),"red"))
 
 
     if r_er>=X_tol or abs(Y_ER)>=yw_tol:
 
         UR, UP, UTh, UYr = PCMD_Controller(X_St, X_Ref, gn_mat, thr_vec)
+        
+        # drone(PCMD(1, UR, UP, UYr, UTh , 0))
+        drone.start_piloting()
+        drone.piloting_pcmd(UR, UP, UYr, UTh , 0)
 
-        drone(PCMD(1, UR, UP, UYr, UTh , 0))
-        print(colored(("Drone position: ", x_dr, y_dr, z_dr, yaw_dr*180/pi),"yellow"))
-        print(colored(("Target position: ", x_R, y_R, z_R, yaw_R*180/pi),"green"))
-        print(colored(("Controller sent commands: ", UR, UP, UYr, UTh),"cyan"))
+        
+        # print(colored(("Drone position: ", x_dr, y_dr, z_dr, yaw_dr*180/pi),"yellow"))
+        # print(colored(("Target position: ", x_R, y_R, z_R, yaw_R*180/pi),"green"))
+        # print(colored(("Controller sent commands: ", UR, UP, UYr, UTh),"cyan"))
 
     else:
         print(colored(("Drone near target, no command sent"),"cyan"))
@@ -206,17 +217,17 @@ def check_PCMD_Sat(com_vec, thr_vec):
 
     for i in range(l-1):
         if abs(com_vec[i]) <= thr_vec[i] and  abs(com_vec[i]) >= 0.01 :
-            ve[i] = int(10*com_vec[i]/thr_vec[i])
+            ve[i] = int(15*com_vec[i]/thr_vec[i])
         elif abs(com_vec[i]) < 0.01:
             ve[i] = 0
         else:
-            ve[i] = int(10*New_Sign(com_vec[i]))
+            ve[i] = int(15*New_Sign(com_vec[i]))
 
     i = l-1
     if abs(com_vec[i]) <= thr_vec[i]:
-        ve[i] = int(80*com_vec[i]/thr_vec[i])
+        ve[i] = int(82*com_vec[i]/thr_vec[i])
     else:
-        ve[i] = int(80*New_Sign(com_vec[i]))
+        ve[i] = int(82*New_Sign(com_vec[i]))
 
 
     Ur   = ve[0]
