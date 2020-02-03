@@ -41,7 +41,7 @@ from standard_objects import drone_line
 
 def Drone_Actn(xa, drone):
 	X_Ref = []
-	X_Home = [-1, 2.5, 0.75, 0, 0, 0, 0, 0, 3*pi/2]
+	X_Home = [1.5, 2.5, 0.75, 0, 0, 0, 0, 0, 3*pi/2]
 
 	if xa==1:
 		if (drone.get_state(FlyingStateChanged)["state"] is not FlyingStateChanged_State.hovering):
@@ -54,7 +54,7 @@ def Drone_Actn(xa, drone):
 
 	if xa == 2:
 		X_Ref = X_Home
-		X_Ref[0] = -1
+		X_Ref[0] = 1.5
 		X_Ref[2] = 0.75	
 
 	elif xa==3:	
