@@ -292,55 +292,6 @@ def Drone_Map_Opn(Dr_Obj, X_Ref, X_Tar, ran_V):
     print(colored( ("Mapping done !! Holding drone at Final Desitination!"), "green"))
 
 
-def record_and_fetch(Dr_Obj, X_Tar, ran_V, rec_Vid):
-    Pose_Topic = "/vicon/anafi_2/odom"
-    pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
-
-    global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
-    rec_Vid             = 0
-    ANAFI_MEDIA_API_URL = Dr_Obj.ANAFI_MEDIA_API_URL
-    ANAFI_URL           = Dr_Obj.ANAFI_URL
-
-
-    X_St = [x, y, z, vx, vy, vz, roll, pitch, yaw]
-    DT = np.array(X_Tar) - np.array(X_St[0:3])
-    r_tar = vec_mag(DT)
-
-    if r_tar<=1.001*ran_V and rec_Vid==0:
-        print(colored( ("Recording Started"), "blue"))
-        drone(start_recording(cam_id=0))
-
-    elif r_tar<=1.001*ran_V and rec_Vid==1:
-        print(colored( ("Recording In Progress"), "blue"))
-
-    elif r_tar>.001*ran_V and rec_Vid==2:
-        print(colored( ("Recording Completed"), "blue"))
-        drone(stop_recording(cam_id=0))
-
-        photo_saved = drone(recording_progress(result="stopped", _policy="wait"))
-        photo_saved.wait()
-
-        media_id = photo_saved.received_events().last().args["media_id"]
-        print(media_id)
-        os.chdir("/home/rnallapu/code/Results")
-        media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
-        media_info_response.raise_for_status()
-        download_dir = tempfile.mkdtemp()
-        Res_dir = filecreation()
-            #tempfile.gettempdir()
-        for resource in media_info_response.json()["resources"]:
-            image_response = requests.get(ANAFI_URL + resource["url"], stream=True)
-            download_path = os.path.join(download_dir, resource["resource_id"])
-            print(colored( ("File Transfer in progress"), "blue"))
-
-            image_response.raise_for_status()
-
-            with open(download_path, "wb") as image_file:
-                shutil.copyfileobj(image_response.raw, image_file)
-            shutil.copy2(download_path, Res_dir)
-            print(colored( ("File Transfer Completed !!!!!!!!!!"), "green"))
-        rec_Vid=2
-
 
 def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
 
@@ -475,22 +426,21 @@ def gimbal_track_moon(Dr_Obj, X_Ref, X_Tar):
 def callback(data):
     global Dr_cl
     global drone
+
     #rospy.loginfo("DATA RECIEVED:", data)
     print("DATA:", data.data)
     x0 = data.data
 
-
-
-    
     # Gains
-    gn_mat = [3.5, 8.5, 4, 6, 1, 2]
+
     X_Tar  = [0, 0, 1.3]
     Vran = 1.33
 
-    acn_N = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20]
-    acn   = ["Take off", "Mapping", "Go to 0,0,1.5", "Go Home and point out", "Track Center","Circle Origin","Gimbal Up +45", "Gimbal Down -45", "Yaw CW", "Yaw CCW", "Land", "Exit" ]
+    acn_N  = [1, 2, 3, 4, 11, 20]
+    acn    = ["Take Off", "Go Home", "Hover", "Mapping", "Land","Exit" ]
+    n_actn = len(acn)
 
-    if x0<=20:
+    if x0<=n_actn:
         print( colored( ('Starting action: ' +  acn[x0-1] + '\n'), "green") )
         X_Ref = Drone_Actn(x0, drone)
 
@@ -509,14 +459,13 @@ def callback(data):
         elif x0==8:
             gimbal_target(drone, -45)
 
-        # x0, c = Print_Drone_Actns(acn,  acn_N)
-
     else:
         print( colored( ('Invalid action selected, please select again! \n'), "red" ))
 
 
 def listener():
     rospy.init_node('anafi_2_listener', anonymous=True)
+
     #this topic needs to be changed for each computer
     rospy.Subscriber("anafi_2/master", Int16, callback)
 
