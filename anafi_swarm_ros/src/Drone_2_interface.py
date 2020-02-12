@@ -30,6 +30,7 @@ from math_requirements import quat2angle, vec_mag, wrapTo2Pi    # Conversions
 from Console_text import  Print_Drone_Actns          # Import Text Files
 from standard_objects import *                       # Import Drone Class
 from Drone_Ops import Drone_Actns_2                  # Import Temporary Dependencies
+from Cam_Ops import *
 
 # Camera Functions
 from olympe.messages.camera import (
@@ -329,7 +330,7 @@ def Record_Transmit(Dr_Obj):
 
     Mr_IP               = '192.168.8.240'  # Master IP
     
-    Setup_Video_mode(drone)
+    
     drone(stop_recording(cam_id=0))
     
     ANAFI_MEDIA_API_URL = Dr_Obj.ANAFI_MEDIA_API_URL
@@ -443,7 +444,6 @@ if __name__ == '__main__':
         Dr_IP = "192.168.42.1"  # Real Drone
         Dr_cl = Anafi_drone(Dr_IP)
         drone = Dr_cl.drone
-        Setup_Video_mode(drone)
         drone(stop_recording(cam_id=0))
         x0    = 5
         print('\x1bc')
