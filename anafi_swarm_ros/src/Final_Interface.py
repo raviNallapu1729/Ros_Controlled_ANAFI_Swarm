@@ -20,7 +20,7 @@ import xml.etree.ElementTree as ET
 
 # ROS imports
 import rospy
-from std_msgs.msg import String
+from std_msgs.msg import String, Int16
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
 
@@ -75,7 +75,7 @@ def poseCallback(data):
 
     # Velocities
     # Linear
-    vx = data.twist.twist.linear.x 
+    vx = data.twist.twist.linear.x
     vy = data.twist.twist.linear.y
     vz = data.twist.twist.linear.z
 
@@ -87,7 +87,7 @@ def poseCallback(data):
     roll, pitch, yaw = quat2angle(q_vec)
 
     # rospy.loginfo("Pose recieved")
-    # print( colored(("Yaw: ", yaw*180/pi), "yellow") ) 
+    # print( colored(("Yaw: ", yaw*180/pi), "yellow") )
 
     # spin() simply keeps python from exiting until this node is stopped
 
@@ -105,13 +105,13 @@ def Drone_Line_Track(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_2/odom"
-    gn_mat  = Dr_Obj.gn_mat 
+    Pose_Topic = "/vicon/anafi_1/odom"
+    gn_mat  = Dr_Obj.gn_mat
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
     V_tol   = Dr_Obj.V_tol
     lr      = Dr_Obj.loop_rate
-    looprate = rospy.Rate(lr) 
+    looprate = rospy.Rate(lr)
 
     while True:
         pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
@@ -131,16 +131,16 @@ def Drone_Move_Orient(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_2/odom"
-    gn_mat  = Dr_Obj.gn_mat 
+    Pose_Topic = "/vicon/anafi_1/odom"
+    gn_mat  = Dr_Obj.gn_mat
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
     V_tol   = Dr_Obj.V_tol
     yw_tol  = Dr_Obj.yw_tol
     lr      = Dr_Obj.loop_rate
-    looprate = rospy.Rate(lr) 
+    looprate = rospy.Rate(lr)
 
-    
+
     while True:
         pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
         X_St = [x, y, z, vx, vy, vz, roll, pitch, yaw]
@@ -159,16 +159,16 @@ def Drone_Center_Track(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_2/odom"
-    gn_mat  = Dr_Obj.gn_mat 
+    Pose_Topic = "/vicon/anafi_1/odom"
+    gn_mat  = Dr_Obj.gn_mat
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
     V_tol   = Dr_Obj.V_tol
     yw_tol  = Dr_Obj.yw_tol
     lr      = Dr_Obj.loop_rate
-    looprate = rospy.Rate(lr) 
+    looprate = rospy.Rate(lr)
 
-    
+
     while True:
         X_Ref[8] = wrapTo2Pi(atan2(-y, -x))
         pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
@@ -188,15 +188,15 @@ def Drone_Circle(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_2/odom"
-    gn_mat  = Dr_Obj.gn_mat 
+    Pose_Topic = "/vicon/anafi_1/odom"
+    gn_mat  = Dr_Obj.gn_mat
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
     V_tol   = Dr_Obj.V_tol
     yw_tol  = Dr_Obj.yw_tol
     lr      = Dr_Obj.loop_rate
-    looprate = rospy.Rate(lr) 
-    dt       = 1/lr 
+    looprate = rospy.Rate(lr)
+    dt       = 1/lr
 
     r_amp = 1.1
     Tp    = 30.0
@@ -217,8 +217,8 @@ def Drone_Circle(Dr_Obj, X_Ref):
         looprate.sleep()
 
     lr2      = 50
-    looprate = rospy.Rate(lr2) 
-    dt       = 1/lr2 
+    looprate = rospy.Rate(lr2)
+    dt       = 1/lr2
 
     print( colored( ("Starting Circle !!"), 'cyan') )
     for t in np.arange(0, 2*Tp, dt):
@@ -239,7 +239,7 @@ def Drone_Circle(Dr_Obj, X_Ref):
 
 
 def Drone_Map_Opn(Dr_Obj, X_Ref, X_Tar, ran_V):
-    
+
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
     yw_tol  = Dr_Obj.yw_tol
@@ -258,8 +258,8 @@ def Drone_Map_Opn(Dr_Obj, X_Ref, X_Tar, ran_V):
     Tp  = 30
 
     lr       = 30
-    looprate = rospy.Rate(lr) 
-    dt       = 1.0/lr 
+    looprate = rospy.Rate(lr)
+    dt       = 1.0/lr
 
     gn_mat = [5, 15, 4, 4, 12, 1.8]        # Controller Gains
     X_tol   = 0.1
@@ -279,7 +279,7 @@ def Drone_Map_Opn(Dr_Obj, X_Ref, X_Tar, ran_V):
         th0 = asin(DT[2]/r_tar)*180/pi
 
         # print(colored( ("Commanded Pose: ", X_Ref[0], X_Ref[1], X_Ref[2],X_Ref[8]*(180/pi) ), "blue"))
-        
+
         gimbal_target(drone, th0)
         drone_line(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol)
 
@@ -293,7 +293,7 @@ def Drone_Map_Opn(Dr_Obj, X_Ref, X_Tar, ran_V):
 
 
 def record_and_fetch(Dr_Obj, X_Tar, ran_V, rec_Vid):
-    Pose_Topic = "/vicon/anafi_2/odom"
+    Pose_Topic = "/vicon/anafi_1/odom"
     pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
 
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
@@ -322,7 +322,7 @@ def record_and_fetch(Dr_Obj, X_Tar, ran_V, rec_Vid):
 
         media_id = photo_saved.received_events().last().args["media_id"]
         print(media_id)
-        os.chdir("/home/spacetrex/code/Results")
+        os.chdir("/home/rnallapu/code/Results")
         media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
         media_info_response.raise_for_status()
         download_dir = tempfile.mkdtemp()
@@ -344,11 +344,11 @@ def record_and_fetch(Dr_Obj, X_Tar, ran_V, rec_Vid):
 
 def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
 
-    drone(stop_recording(cam_id=0))
-    
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
     yw_tol  = Dr_Obj.yw_tol
+
+
 
     ANAFI_MEDIA_API_URL = Dr_Obj.ANAFI_MEDIA_API_URL
     ANAFI_URL           = Dr_Obj.ANAFI_URL
@@ -362,14 +362,14 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
     y0     = X_Ref[1]
 
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
-    # Pose_Topic = "/vicon/anafi_2/odom"
+    # Pose_Topic = "/vicon/anafi_1/odom"
 
     vyT = -0.15
     Tp = 30
 
     lr       = 35
-    looprate = rospy.Rate(lr) 
-    dt       = 1.0/lr 
+    looprate = rospy.Rate(lr)
+    dt       = 1.0/lr
     X_tol   = 0.1
 
     gn_mat = [5, 15, 4, 4, 12, 1.8]        # Controller Gains
@@ -385,31 +385,15 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
         X_Ref[1] = y0 + vyT*t
         X_Ref[4] =  vyT
         X_Ref[8] = wrapTo2Pi(atan2(-y, -x))
-        Yaw_Ref_D = X_Ref[8]*180/pi
 
         DT = np.array(X_Tar) - np.array(X_St[0:3])
         r_tar = vec_mag(DT)
-
-        Er = np.array(X_Ref[0:3]) - np.array(X_St[0:3])
-        er = vec_mag(Er)
-
         th0 = asin(DT[2]/r_tar)*180/pi
-        Yaw_D = yaw*180/pi
-        yw_er = abs(Yaw_Ref_D - Yaw_D)
 
         gimbal_target(drone, th0)
         drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol)
-
-        print(" ")
-        print(colored(("Reference tracking error: ", er),"yellow"))
-        print(colored(("Yaw tracking Error: ", yw_er),"yellow"))
-
-        print(colored(("Z desired: ", X_Ref[2]),"green"))
-        print(colored(("Z achieved: ", z),"green"))
-
         print(colored(("Distance to target: ", r_tar),"red"))
         print(colored(("Record Status: ", rec_Vid),"red"))
-
         print(colored(("Distance threshhold: ", 1.01*ran_V),"blue"))
         print(colored(("Gimbal angle computed: ", th0),"blue"))
 
@@ -423,22 +407,22 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
             print(colored( ("Recording Completed"), "blue"))
             drone(stop_recording(cam_id=0))
             photo_saved.wait()
-            
+
         looprate.sleep()
     time.sleep(0.5)
-    
+
 
     # X_Ref2[1] = -2.0
     # Drone_Move_Orient(Dr_Obj, X_Ref2)
     drone(Landing()).wait()
     print(colored( ("Starting Transfer"), "green"))
-    
+
     # photo_saved = drone(recording_progress(result="stopped", _policy="wait"))
     # photo_saved.wait()
     media_id = photo_saved.received_events().last().args["media_id"]
     print(colored( (media_id), "green"))
 
-    os.chdir("/home/spacetrex/code/Results")
+    os.chdir("/home/rnallapu/code/Results")
     media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
     media_info_response.raise_for_status()
     download_dir = tempfile.mkdtemp()
@@ -461,13 +445,13 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
 def gimbal_track_moon(Dr_Obj, X_Ref, X_Tar):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
     # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_2/odom"
+    Pose_Topic = "/vicon/anafi_1/odom"
     lr      = Dr_Obj.loop_rate
     X_tol   = Dr_Obj.X_tol
     V_tol   = Dr_Obj.V_tol
-    looprate = rospy.Rate(lr) 
+    looprate = rospy.Rate(lr)
     print( colored( ("Gimbal Action Started !!"), 'cyan') )
-    
+
     while True:
         pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
         X_St = [x, y, z, vx, vy, vz, roll, pitch, yaw]
@@ -488,66 +472,57 @@ def gimbal_track_moon(Dr_Obj, X_Ref, X_Tar):
             break
         looprate.sleep()
 
+def callback(data):
+    x0 = data
+
+    global drone
+    Dr_IP = "192.168.42.1"  # Real Drone
+    Dr_cl = Anafi_drone(Dr_IP)
+    drone = Dr_cl.drone
+
+    x0 = 11
+    # Gains
+    gn_mat = [3.5, 8.5, 4, 6, 1, 2]
+    X_Tar  = [0, 0, 1.3]
+    Vran = 1.33
+
+    if x0<=8:
+        acn   = ["Take off", "Mapping", "Go to 0,0,1.5", "Go Home and point out", "Track Center","Circle Origin","Gimbal Up +45", "Gimbal Down -45", "Yaw CW", "Yaw CCW", "Land", "Exit" ]
+        print( colored( ('Starting action: ' +  acn[x0-1] + '\n'), "green") )
+        X_Ref = Drone_Actn(x0, drone)
+        if x0==2:
+            Drone_Map_Opn2(Dr_cl, X_Ref, X_Tar, Vran)
+        elif x0==3:
+            Drone_Line_Track(Dr_cl, X_Ref)
+        elif x0==4:
+            Drone_Move_Orient(Dr_cl, X_Ref)
+        elif x0==5:
+            Drone_Center_Track(Dr_cl, X_Ref)
+        elif x0==6:
+            Drone_Circle(Dr_cl, X_Ref)
+        elif x0==7:
+            gimbal_target(drone, 45)
+        elif x0==8:
+            gimbal_target(drone, -45)
+
+        x0, c = Print_Drone_Actns(acn,  acn_N)
+
+    else:
+        print( colored( ('Invalid action selected, please select again! \n'), "red" ))
+
+
+def listener():
+    rospy.init_node('anafi_1_listener', anonymous=True)
+    #this topic needs to be changed for each computer
+    rospy.Subscriber("anafi_1/master", Int16, callback)
+
+    rospy.spin()
 
 
 if __name__ == '__main__':
     try:
-
         signal(SIGINT, Drone_land)
-
-        rospy.init_node('anafi_interface', anonymous=True)
-
-        # Pose Subscriber:
-        Pose_Topic = "/vicon/anafi_2/odom"
-        pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
-
-        # Initialize
-        # Drone IP
-        global drone
-        Dr_IP = "192.168.42.1"  # Real Drone
-        Dr_cl = Anafi_drone(Dr_IP)
-        drone = Dr_cl.drone
-
-        x0 = 11
-        # Gains
-        gn_mat = [3.5, 8.5, 4, 6, 1, 2]
-        X_Tar  = [0, 0, 1.3]
-        Vran = 1.66
-
-
-        print('\x1bc')
-        acn_N = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20]
-        acn   = ["Take off", "Mapping", "Go to 0,0,1.5", "Go Home and point out", "Track Center","Circle Origin","Gimbal Up +45", "Gimbal Down -45", "Yaw CW", "Yaw CCW", "Land", "Exit" ]
-        n_actn = len(acn)
-
-        while(x0<20):
-
-            if x0<=n_actn:
-
-                print('\x1bc')
-                print( colored( ('Starting action: ' +  acn[x0-1] + '\n'), "green") )
-                X_Ref = Drone_Actn(x0, drone)
-                if x0==2:
-                    Drone_Map_Opn2(Dr_cl, X_Ref, X_Tar, Vran)
-                elif x0==3:
-                    Drone_Line_Track(Dr_cl, X_Ref)
-                elif x0==4:
-                    Drone_Move_Orient(Dr_cl, X_Ref)
-                elif x0==5:
-                    Drone_Center_Track(Dr_cl, X_Ref)
-                elif x0==6:
-                    Drone_Circle(Dr_cl, X_Ref)
-                elif x0==7:
-                    gimbal_target(drone, 45)
-                elif x0==8:
-                    gimbal_target(drone, -45)
-        
-                x0, c = Print_Drone_Actns(acn,  acn_N)
-
-            else:
-                print('\x1bc')
-                print( colored( ('Invalid action selected, please select again! \n'), "red" ))
-                x0, c = Print_Drone_Actns(acn,  acn_N)
+        listener()
 
     except rospy.ROSInterruptException:
         rospy.loginfo("node terminated")
