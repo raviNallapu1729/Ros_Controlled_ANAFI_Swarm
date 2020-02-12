@@ -101,23 +101,28 @@ if __name__ == '__main__':
     while not rospy.is_shutdown():
 
         print('\x1bc')
-        acn_N = [1, 2, 3, 4, 11, 20]
-        acn   = ["Take Off", "Go Home", "Hover", "Mapping", "Land","Exit" ]
+        acn_N = [1, 2, 3, 4, 5, 6, 7]
+        acn   = ["Take Off", "Go Home", "Hover", "Mapping", "Land", "Exit", "Record Video" ]
         n_actn = len(acn)
 
         x0, c = Print_Drone_Actns(acn,  acn_N)
+        
 
         if x0<=n_actn:
-            time.sleep(10)
+            print( colored( ('Starting action: ' +  acn[x0-1] + '\n'), "green") )
+            # time.sleep(10)
             anafi1(x0)
             anafi2(x0)
             anafi3(x0)
             anafi4(x0)
             anafi5(x0)
+            
+            if x0==6:
+                sys.exit(0)
+
         else:
-            print('\x1bc')
+            
             print( colored( ('Invalid action selected, please select again! \n'), "red" ))
+
         
-        x0, c = Print_Drone_Actns(acn,  acn_N)
-        print( colored( ('Starting action: ' +  acn[x0-1] + '\n'), "green") )
             
