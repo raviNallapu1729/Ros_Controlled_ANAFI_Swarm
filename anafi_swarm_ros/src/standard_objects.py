@@ -164,7 +164,7 @@ def drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol):
     z_R    = X_Ref[2]
     yaw_R  = X_Ref[8]
 
-    Er = np.array(X_Ref) - np.array(X_St)
+    Er   = np.array(X_Ref) - np.array(X_St)
     r_er = vec_mag(Er[0:3])
     Y_ER = compute_yaw_Error(yaw_R, yaw_dr)
 
@@ -217,17 +217,17 @@ def check_PCMD_Sat(com_vec, thr_vec):
 
     for i in range(l-1):
         if abs(com_vec[i]) <= thr_vec[i] and  abs(com_vec[i]) >= 0.01 :
-            ve[i] = int(15*com_vec[i]/thr_vec[i])
+            ve[i] = int(18*com_vec[i]/thr_vec[i])
         elif abs(com_vec[i]) < 0.01:
             ve[i] = 0
         else:
-            ve[i] = int(15*New_Sign(com_vec[i]))
+            ve[i] = int(18*New_Sign(com_vec[i]))
 
     i = l-1
     if abs(com_vec[i]) <= thr_vec[i]:
-        ve[i] = int(82*com_vec[i]/thr_vec[i])
+        ve[i] = int(85*com_vec[i]/thr_vec[i])
     else:
-        ve[i] = int(82*New_Sign(com_vec[i]))
+        ve[i] = int(85*New_Sign(com_vec[i]))
 
 
     Ur   = ve[0]
@@ -248,6 +248,66 @@ def R3_Mat_Drone_Commands(state_Vec, ref_Vec, gn_mat):
     vx_R   = ref_Vec[3]
     vy_R   = ref_Vec[4]
     vz_R   = ref_Vec[5]
+    yaw_R  = ref_Vec[8]
+
+    # Drone State
+    x_dr   = state_Vec[0]
+    y_dr   = state_Vec[1]
+    z_dr   = state_Vec[2]
+
+    vx_dr   = state_Vec[3]
+    vy_dr   = state_Vec[4]
+    vz_dr   = state_Vec[5]
+
+    yaw_dr  = state_Vec[8]
+    th_R1   = yaw_dr
+
+    # Errors
+    x_ER   = x_R - x_dr
+    y_ER   = y_R - y_dr
+    z_ER   = z_R - z_dr
+
+    vx_ER   = vx_R - vx_dr
+    vy_ER   = vy_R - vy_dr
+    vz_ER   = vz_R - vz_dr
+    yaw_ER = compute_yaw_Error(yaw_R, yaw_dr)
+
+    # Gains
+    g1 = gn_mat[0]
+    g2 = gn_mat[1]
+    g4 = gn_mat[3]
+    g5 = gn_mat[4]
+    g6 = gn_mat[5]
+
+    # Holonomic  Controls
+    Ux   =    (g1*x_ER + g2*vx_ER)
+    Uy   =   -(g1*y_ER + g2*vy_ER)
+    Uz   =     g4*z_ER + g5*vz_ER
+    Uyaw =   -g6*yaw_ER*180/pi
+
+    d_in = np.array([Ux, Uy, Uz])
+    R3 = np.array([[cos(th_R1), -sin(th_R1), 0], [sin(th_R1), cos(th_R1), 0], [0, 0, 1]])
+    dv2 = R3.dot(d_in)  # Drone frame commands
+
+    return dv2, Uyaw
+
+
+def gimbal_target(drone, abs_ang):
+        drone(set_target(gimbal_id = 0, control_mode = "position", yaw_frame_of_reference = "absolute", yaw = 0, 
+        pitch_frame_of_reference = "absolute", pitch = abs_ang,  roll_frame_of_reference ="absolute", roll = 0))
+
+
+def R3_Mat_Drone_Commands_track(state_Vec, ref_Vec, gn_mat):
+    #print(colored(ref_Vec, "red"))
+
+    # Reference values
+    x_R    = ref_Vec[0]
+    y_R    = ref_Vec[1]
+    z_R    = ref_Vec[2]
+    vx_R   = ref_Vec[3]
+    vy_R   = ref_Vec[4]
+    vz_R   = ref_Vec[5]
+    yaw_R  = ref_Vec[8]
     yaw_R  = ref_Vec[8]
 
     # Drone State

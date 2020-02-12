@@ -1,5 +1,6 @@
 # Standard Imports
 import os
+import sys
 import time
 from math import pi, sin, cos
 import re
@@ -20,13 +21,8 @@ from olympe.messages.ardrone3.GPSSettingsState import GPSFixStateChanged
 from olympe.messages.ardrone3.PilotingSettings import setAutonomousFlightMaxRotationSpeed
 from olympe.messages.ardrone3.SpeedSettings import MaxRotationSpeed
 from olympe.messages.ardrone3.SpeedSettingsState import MaxRotationSpeedChanged
-from Cam_Ops import *
-from olympe.messages.camera import (
-	set_camera_mode,
-	set_photo_mode,
-	take_photo,
-	photo_progress,
-)
+
+
 
 # ROS Imports
 import rospy
@@ -40,11 +36,14 @@ from standard_objects import drone_line
 
 
 def Drone_Actn(xa, drone):
+	print(colored(('Your Message: ', xa), "blue"))
 	X_Ref = []
-	X_Home = [-1, 2.5, 0.75, 0, 0, 0, 0, 0, 3*pi/2]
+	X_Home = [1, 2.5, 0.75, 0, 0, 0, 0, 0, 3*pi/2]
 
 	if xa==1:
+		
 		if (drone.get_state(FlyingStateChanged)["state"] is not FlyingStateChanged_State.hovering):
+			print(colored(('Initating Drone Take off !'), "green"))
 			drone(TakeOff(_no_expect=True) & FlyingStateChanged(state="hovering", _policy="wait", _timeout=5)
 			).wait()
 			# drone.start_piloting()
@@ -54,7 +53,7 @@ def Drone_Actn(xa, drone):
 
 	if xa == 2:
 		X_Ref = X_Home
-		X_Ref[0] = -1
+		X_Ref[0] = 1
 		X_Ref[2] = 0.75	
 
 	elif xa==3:	
@@ -84,18 +83,154 @@ def Drone_Actn(xa, drone):
 		).wait()
 
 	elif xa==11:
+		print(colored(('Starting to Land !'), "green"))
 		drone.stop_piloting()
 		drone(Landing()).wait()
 		time.sleep(5)
 		drone(Emergency()).wait()
+		print(colored(('Drone Landed !'), "green"))
+		
 	else:
 		print('Currently Not programmed')
 	
 	return X_Ref
 
 
+
+
+def Drone_Actns_2(xa, drone):
+	
+	X_Ref = []
+	X_Home = [1.5,  2.7, 0.75, 0, 0, 0, 0, 0, 3*pi/2]
+	X_End  = [1.5, -1.98, 0.75, 0, 0, 0, 0, 0, 3*pi/2]
+	DX     = X_End[1] - X_Home[1]
+	Tp     = 45
+	Vy     = DX/Tp
+
+	
+
+
+	if xa==1:
+		
+		if (drone.get_state(FlyingStateChanged)["state"] is not FlyingStateChanged_State.hovering):
+			print(colored(('Initating Drone Take off !'), "green"))
+			drone(TakeOff(_no_expect=True) & FlyingStateChanged(state="hovering", _policy="wait", _timeout=5)
+			).wait()
+			# drone.start_piloting()
+		else:
+			print(colored(('Drone has already taken off !'), "green"))
+
+	elif xa == 2:
+		X_Ref = X_Home
+
+
+	elif xa==3:	
+		print(colored(('Holding Position!'), "green"))
+		X_Ref = [0, 0, 1.5, 0, 0, 0, 0, 0, 0]
+
+	elif xa==4:
+		X_Ref = X_Home
+
+
+	elif xa==5:
+		print(colored(('Starting to Land !'), "green"))
+
+		drone.stop_piloting()
+		drone(Landing()).wait()
+		time.sleep(5)
+
+		drone(Emergency()).wait()
+
+		print(colored(('Drone Landed !'), "green"))
+
+	elif xa==6:
+		print(colored(('Starting to Land !'), "green"))
+
+		drone.stop_piloting()
+		drone(Landing()).wait()
+		time.sleep(5)
+
+		drone(Emergency()).wait()
+
+		print(colored(('Drone Landed !'), "green"))
+		drone.disconnection()
+		sys.exit(0)
+
+	else:
+
+		print(colored(('Your Message: ', xa), "blue"))
+		print(colored(('Currently not programmed!'), "red"))
+	
+	return X_Ref, Tp, Vy, X_End
+
+def Drone_Actns_3(xa, drone):
+	
+	X_Ref = []
+	X_Home = [-1.5,  2.7, 0.75, 0, 0, 0, 0, 0, 3*pi/2]
+	X_End  = [-1.5, -1.98, 0.75, 0, 0, 0, 0, 0, 3*pi/2]
+	DX     = X_End[1] - X_Home[1]
+	Tp     = 45
+	Vy     = DX/Tp
+
+	
+
+
+	if xa==1:
+		
+		if (drone.get_state(FlyingStateChanged)["state"] is not FlyingStateChanged_State.hovering):
+			print(colored(('Initating Drone Take off !'), "green"))
+			drone(TakeOff(_no_expect=True) & FlyingStateChanged(state="hovering", _policy="wait", _timeout=5)
+			).wait()
+			# drone.start_piloting()
+		else:
+			print(colored(('Drone has already taken off !'), "green"))
+
+	elif xa == 2:
+		X_Ref = X_Home
+
+
+	elif xa==3:	
+		print(colored(('Holding Position!'), "green"))
+		X_Ref = [0, 0, 1.5, 0, 0, 0, 0, 0, 0]
+
+	elif xa==4:
+		X_Ref = X_Home
+
+
+	elif xa==5:
+		print(colored(('Starting to Land !'), "green"))
+
+		drone.stop_piloting()
+		drone(Landing()).wait()
+		time.sleep(5)
+
+		drone(Emergency()).wait()
+
+		print(colored(('Drone Landed !'), "green"))
+
+	elif xa==6:
+		print(colored(('Starting to Land !'), "green"))
+
+		drone.stop_piloting()
+		drone(Landing()).wait()
+		time.sleep(5)
+
+		drone(Emergency()).wait()
+
+		print(colored(('Drone Landed !'), "green"))
+		drone.disconnection()
+		sys.exit(0)
+
+	else:
+
+		print(colored(('Your Message: ', xa), "blue"))
+		print(colored(('Currently not programmed!'), "red"))
+	
+	return X_Ref, Tp, Vy, X_End
+
+
 def Drone_settings(drone):
 	drone(
-		MaxRotationSpeed(1)
+		MaxRotationSpeed(20)
 		>> MaxRotationSpeedChanged(current=1, _policy='wait')
 	).wait()

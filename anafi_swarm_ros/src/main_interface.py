@@ -105,7 +105,7 @@ def Drone_Line_Track(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_1/odom"
+    Pose_Topic = "/vicon/anafi_2/odom"
     gn_mat  = Dr_Obj.gn_mat 
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
@@ -131,7 +131,7 @@ def Drone_Move_Orient(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_1/odom"
+    Pose_Topic = "/vicon/anafi_2/odom"
     gn_mat  = Dr_Obj.gn_mat 
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
@@ -159,7 +159,7 @@ def Drone_Center_Track(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_1/odom"
+    Pose_Topic = "/vicon/anafi_2/odom"
     gn_mat  = Dr_Obj.gn_mat 
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
@@ -188,7 +188,7 @@ def Drone_Circle(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_1/odom"
+    Pose_Topic = "/vicon/anafi_2/odom"
     gn_mat  = Dr_Obj.gn_mat 
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
@@ -293,7 +293,7 @@ def Drone_Map_Opn(Dr_Obj, X_Ref, X_Tar, ran_V):
 
 
 def record_and_fetch(Dr_Obj, X_Tar, ran_V, rec_Vid):
-    Pose_Topic = "/vicon/anafi_1/odom"
+    Pose_Topic = "/vicon/anafi_2/odom"
     pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
 
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
@@ -322,7 +322,7 @@ def record_and_fetch(Dr_Obj, X_Tar, ran_V, rec_Vid):
 
         media_id = photo_saved.received_events().last().args["media_id"]
         print(media_id)
-        os.chdir("/home/rnallapu/code/Results")
+        os.chdir("/home/spacetrex/code/Results")
         media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
         media_info_response.raise_for_status()
         download_dir = tempfile.mkdtemp()
@@ -343,12 +343,12 @@ def record_and_fetch(Dr_Obj, X_Tar, ran_V, rec_Vid):
 
 
 def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
+
+    drone(stop_recording(cam_id=0))
     
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
     yw_tol  = Dr_Obj.yw_tol
-
-
 
     ANAFI_MEDIA_API_URL = Dr_Obj.ANAFI_MEDIA_API_URL
     ANAFI_URL           = Dr_Obj.ANAFI_URL
@@ -362,7 +362,7 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
     y0     = X_Ref[1]
 
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
-    # Pose_Topic = "/vicon/anafi_1/odom"
+    # Pose_Topic = "/vicon/anafi_2/odom"
 
     vyT = -0.15
     Tp = 30
@@ -385,15 +385,31 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
         X_Ref[1] = y0 + vyT*t
         X_Ref[4] =  vyT
         X_Ref[8] = wrapTo2Pi(atan2(-y, -x))
+        Yaw_Ref_D = X_Ref[8]*180/pi
 
         DT = np.array(X_Tar) - np.array(X_St[0:3])
         r_tar = vec_mag(DT)
+
+        Er = np.array(X_Ref[0:3]) - np.array(X_St[0:3])
+        er = vec_mag(Er)
+
         th0 = asin(DT[2]/r_tar)*180/pi
+        Yaw_D = yaw*180/pi
+        yw_er = abs(Yaw_Ref_D - Yaw_D)
 
         gimbal_target(drone, th0)
         drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol)
+
+        print(" ")
+        print(colored(("Reference tracking error: ", er),"yellow"))
+        print(colored(("Yaw tracking Error: ", yw_er),"yellow"))
+
+        print(colored(("Z desired: ", X_Ref[2]),"green"))
+        print(colored(("Z achieved: ", z),"green"))
+
         print(colored(("Distance to target: ", r_tar),"red"))
         print(colored(("Record Status: ", rec_Vid),"red"))
+
         print(colored(("Distance threshhold: ", 1.01*ran_V),"blue"))
         print(colored(("Gimbal angle computed: ", th0),"blue"))
 
@@ -422,7 +438,7 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
     media_id = photo_saved.received_events().last().args["media_id"]
     print(colored( (media_id), "green"))
 
-    os.chdir("/home/rnallapu/code/Results")
+    os.chdir("/home/spacetrex/code/Results")
     media_info_response = requests.get(ANAFI_MEDIA_API_URL + media_id)
     media_info_response.raise_for_status()
     download_dir = tempfile.mkdtemp()
@@ -445,7 +461,7 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
 def gimbal_track_moon(Dr_Obj, X_Ref, X_Tar):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
     # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_1/odom"
+    Pose_Topic = "/vicon/anafi_2/odom"
     lr      = Dr_Obj.loop_rate
     X_tol   = Dr_Obj.X_tol
     V_tol   = Dr_Obj.V_tol
@@ -482,7 +498,7 @@ if __name__ == '__main__':
         rospy.init_node('anafi_interface', anonymous=True)
 
         # Pose Subscriber:
-        Pose_Topic = "/vicon/anafi_1/odom"
+        Pose_Topic = "/vicon/anafi_2/odom"
         pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
 
         # Initialize
@@ -496,7 +512,7 @@ if __name__ == '__main__':
         # Gains
         gn_mat = [3.5, 8.5, 4, 6, 1, 2]
         X_Tar  = [0, 0, 1.3]
-        Vran = 1.33
+        Vran = 1.66
 
 
         print('\x1bc')

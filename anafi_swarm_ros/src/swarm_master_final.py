@@ -56,7 +56,6 @@ def anafi5(cmd):
     pub.publish(data)
 
 
-
 def timedMission():
         anafi1(3)
         time.sleep(1)
@@ -99,60 +98,31 @@ if __name__ == '__main__':
     rospy.init_node('MASTER', anonymous=True)
 
 
-
     while not rospy.is_shutdown():
-        #print('\x1bc')
-        acn_N = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20]
-        acn   = ["TAKE OFF", "Mapping", "Go Home","HOVER",  "Go Home","HOVER",  "Go Home","HOVER", "STOP", "STOP1","LAND","EXIT" ]
+
+        print('\x1bc')
+        acn_N = [1, 2, 3, 4, 5, 6, 7]
+        acn   = ["Take Off", "Go Home", "Hover", "Mapping", "Land", "Exit", "Record Video" ]
         n_actn = len(acn)
 
         x0, c = Print_Drone_Actns(acn,  acn_N)
+        
 
         if x0<=n_actn:
-            time.sleep(10)
-
-            #X_Ref = Drone_Actn(x0, drone)
-            if x0==1:
-                status = 0
-                anafi1(x0)
-                anafi2(x0)
-                anafi3(x0)
-                anafi4(x0)
-                anafi5(x0)
-
-                print "ALL DRONES TAKEOFF"
-            elif x0==2:
-                status = 0
-                anafi1(x0)
-                anafi2(x0)
-                anafi3(x0)
-                anafi4(x0)
-                anafi5(x0)
-                print "ALL DRONES HOVER"
-            elif x0 == 3:
-                print "Starting Mission Thread"
-                status = 1
-                mission= Thread(target=timedMission)
-                mission.daemon = True
-                mission.start()
-            elif x0 == 4:
-                print "STOP"
-            elif x0 == 11:
-                print "LAND"
-                anafi1(x0)
-                anafi2(x0)
-                anafi3(x0)
-                anafi4(x0)
-                anafi5(x0)
-            elif x0 == 6:
-                print "exit"
-
-
-            else:
-                print('\x1bc')
-                print( colored( ('Invalid action selected, please select again! \n'), "red" ))
-                x0, c = Print_Drone_Actns(acn,  acn_N)
-
             print( colored( ('Starting action: ' +  acn[x0-1] + '\n'), "green") )
+            # time.sleep(10)
+            anafi1(x0)
+            anafi2(x0)
+            anafi3(x0)
+            anafi4(x0)
+            anafi5(x0)
+            
+            if x0==6:
+                sys.exit(0)
 
-            #print('\x1bc')
+        else:
+            
+            print( colored( ('Invalid action selected, please select again! \n'), "red" ))
+
+        
+            

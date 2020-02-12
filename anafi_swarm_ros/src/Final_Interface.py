@@ -105,11 +105,7 @@ def Drone_Line_Track(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-<<<<<<< HEAD
-    Pose_Topic = "/vicon/anafi_5/odom"
-=======
-    Pose_Topic = "/vicon/anafi_2/odom"
->>>>>>> 1d491c6b6b0ad141dc94e80d05adbb491ba5e36e
+    Pose_Topic = "/vicon/anafi_1/odom"
     gn_mat  = Dr_Obj.gn_mat
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
@@ -135,11 +131,7 @@ def Drone_Move_Orient(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-<<<<<<< HEAD
-    Pose_Topic = "/vicon/anafi_5/odom"
-=======
-    Pose_Topic = "/vicon/anafi_2/odom"
->>>>>>> 1d491c6b6b0ad141dc94e80d05adbb491ba5e36e
+    Pose_Topic = "/vicon/anafi_1/odom"
     gn_mat  = Dr_Obj.gn_mat
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
@@ -167,11 +159,7 @@ def Drone_Center_Track(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-<<<<<<< HEAD
-    Pose_Topic = "/vicon/anafi_5/odom"
-=======
-    Pose_Topic = "/vicon/anafi_2/odom"
->>>>>>> 1d491c6b6b0ad141dc94e80d05adbb491ba5e36e
+    Pose_Topic = "/vicon/anafi_1/odom"
     gn_mat  = Dr_Obj.gn_mat
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
@@ -200,11 +188,7 @@ def Drone_Circle(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-<<<<<<< HEAD
-    Pose_Topic = "/vicon/anafi_5/odom"
-=======
-    Pose_Topic = "/vicon/anafi_2/odom"
->>>>>>> 1d491c6b6b0ad141dc94e80d05adbb491ba5e36e
+    Pose_Topic = "/vicon/anafi_1/odom"
     gn_mat  = Dr_Obj.gn_mat
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
@@ -309,11 +293,7 @@ def Drone_Map_Opn(Dr_Obj, X_Ref, X_Tar, ran_V):
 
 
 def record_and_fetch(Dr_Obj, X_Tar, ran_V, rec_Vid):
-<<<<<<< HEAD
-    Pose_Topic = "/vicon/anafi_5/odom"
-=======
-    Pose_Topic = "/vicon/anafi_2/odom"
->>>>>>> 1d491c6b6b0ad141dc94e80d05adbb491ba5e36e
+    Pose_Topic = "/vicon/anafi_1/odom"
     pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
 
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
@@ -382,11 +362,7 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
     y0     = X_Ref[1]
 
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
-<<<<<<< HEAD
-    # Pose_Topic = "/vicon/anafi_5/odom"
-=======
-    # Pose_Topic = "/vicon/anafi_2/odom"
->>>>>>> 1d491c6b6b0ad141dc94e80d05adbb491ba5e36e
+    # Pose_Topic = "/vicon/anafi_1/odom"
 
     vyT = -0.15
     Tp = 30
@@ -469,11 +445,7 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V):
 def gimbal_track_moon(Dr_Obj, X_Ref, X_Tar):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
     # Pose Subscriber:
-<<<<<<< HEAD
-    Pose_Topic = "/vicon/anafi_5/odom"
-=======
-    Pose_Topic = "/vicon/anafi_2/odom"
->>>>>>> 1d491c6b6b0ad141dc94e80d05adbb491ba5e36e
+    Pose_Topic = "/vicon/anafi_1/odom"
     lr      = Dr_Obj.loop_rate
     X_tol   = Dr_Obj.X_tol
     V_tol   = Dr_Obj.V_tol
@@ -501,27 +473,23 @@ def gimbal_track_moon(Dr_Obj, X_Ref, X_Tar):
         looprate.sleep()
 
 def callback(data):
-    global Dr_cl
+    x0 = data
+
     global drone
-    #rospy.loginfo("DATA RECIEVED:", data)
-    print("DATA:", data.data)
-    x0 = data.data
+    Dr_IP = "192.168.42.1"  # Real Drone
+    Dr_cl = Anafi_drone(Dr_IP)
+    drone = Dr_cl.drone
 
-
-
-    
+    x0 = 11
     # Gains
     gn_mat = [3.5, 8.5, 4, 6, 1, 2]
     X_Tar  = [0, 0, 1.3]
     Vran = 1.33
 
-    acn_N = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 20]
-    acn   = ["Take off", "Mapping", "Go to 0,0,1.5", "Go Home and point out", "Track Center","Circle Origin","Gimbal Up +45", "Gimbal Down -45", "Yaw CW", "Yaw CCW", "Land", "Exit" ]
-
-    if x0<=20:
+    if x0<=8:
+        acn   = ["Take off", "Mapping", "Go to 0,0,1.5", "Go Home and point out", "Track Center","Circle Origin","Gimbal Up +45", "Gimbal Down -45", "Yaw CW", "Yaw CCW", "Land", "Exit" ]
         print( colored( ('Starting action: ' +  acn[x0-1] + '\n'), "green") )
         X_Ref = Drone_Actn(x0, drone)
-
         if x0==2:
             Drone_Map_Opn2(Dr_cl, X_Ref, X_Tar, Vran)
         elif x0==3:
@@ -537,22 +505,16 @@ def callback(data):
         elif x0==8:
             gimbal_target(drone, -45)
 
-        # x0, c = Print_Drone_Actns(acn,  acn_N)
+        x0, c = Print_Drone_Actns(acn,  acn_N)
 
     else:
         print( colored( ('Invalid action selected, please select again! \n'), "red" ))
 
 
 def listener():
-<<<<<<< HEAD
-    rospy.init_node('anafi_5_listener', anonymous=True)
+    rospy.init_node('anafi_1_listener', anonymous=True)
     #this topic needs to be changed for each computer
-    rospy.Subscriber("anafi_5/master", Int16, callback)
-=======
-    rospy.init_node('anafi_2_listener', anonymous=True)
-    #this topic needs to be changed for each computer
-    rospy.Subscriber("anafi_2/master", Int16, callback)
->>>>>>> 1d491c6b6b0ad141dc94e80d05adbb491ba5e36e
+    rospy.Subscriber("anafi_1/master", Int16, callback)
 
     rospy.spin()
 
@@ -560,14 +522,6 @@ def listener():
 if __name__ == '__main__':
     try:
         signal(SIGINT, Drone_land)
-        global Dr_cl
-        
-        Dr_IP = "192.168.42.1"  # Real Drone
-        Dr_cl = Anafi_drone(Dr_IP)
-        drone = Dr_cl.drone
-        x0    = 11
-        X_Ref = Drone_Actn(x0, drone)
-
         listener()
 
     except rospy.ROSInterruptException:
