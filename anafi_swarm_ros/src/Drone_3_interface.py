@@ -30,6 +30,7 @@ from math_requirements import quat2angle, vec_mag, wrapTo2Pi    # Conversions
 from Console_text import  Print_Drone_Actns          # Import Text Files
 from standard_objects import *                       # Import Drone Class
 from Drone_Ops import Drone_Actns_3                  # Import Temporary Dependencies
+from Cam_Ops import *
 
 # Camera Functions
 from olympe.messages.camera import (
