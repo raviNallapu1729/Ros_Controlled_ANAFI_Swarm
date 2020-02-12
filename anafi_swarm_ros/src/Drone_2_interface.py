@@ -97,7 +97,8 @@ def Drone_land(signal_recieved, frame):
 
     drone.stop_piloting()
     time.sleep(3)
-    Drone_Actn(11, drone)
+    X_Ref = Drone_Actns_2(5, drone)
+    
     print("Simulation Exited")
     sys.exit(0)
 
