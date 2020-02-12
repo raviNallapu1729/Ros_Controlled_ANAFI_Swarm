@@ -164,7 +164,7 @@ def drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol):
     z_R    = X_Ref[2]
     yaw_R  = X_Ref[8]
 
-    Er = np.array(X_Ref) - np.array(X_St)
+    Er   = np.array(X_Ref) - np.array(X_St)
     r_er = vec_mag(Er[0:3])
     Y_ER = compute_yaw_Error(yaw_R, yaw_dr)
 
