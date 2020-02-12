@@ -21,13 +21,8 @@ from olympe.messages.ardrone3.GPSSettingsState import GPSFixStateChanged
 from olympe.messages.ardrone3.PilotingSettings import setAutonomousFlightMaxRotationSpeed
 from olympe.messages.ardrone3.SpeedSettings import MaxRotationSpeed
 from olympe.messages.ardrone3.SpeedSettingsState import MaxRotationSpeedChanged
-from Cam_Ops import *
-from olympe.messages.camera import (
-	set_camera_mode,
-	set_photo_mode,
-	take_photo,
-	photo_progress,
-)
+
+
 
 # ROS Imports
 import rospy

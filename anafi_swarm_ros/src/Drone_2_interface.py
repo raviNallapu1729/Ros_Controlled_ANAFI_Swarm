@@ -328,8 +328,10 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
 def Record_Transmit(Dr_Obj):
 
     Mr_IP               = '192.168.8.240'  # Master IP
-
+    
+    Setup_Video_mode(drone)
     drone(stop_recording(cam_id=0))
+    
     ANAFI_MEDIA_API_URL = Dr_Obj.ANAFI_MEDIA_API_URL
     ANAFI_URL           = Dr_Obj.ANAFI_URL
     photo_saved         = drone(recording_progress(result="stopped", _policy="wait"))
@@ -441,6 +443,7 @@ if __name__ == '__main__':
         Dr_IP = "192.168.42.1"  # Real Drone
         Dr_cl = Anafi_drone(Dr_IP)
         drone = Dr_cl.drone
+        Setup_Video_mode(drone)
         drone(stop_recording(cam_id=0))
         x0    = 5
         print('\x1bc')
