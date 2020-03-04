@@ -38,9 +38,14 @@ from math_requirements import compute_yaw_Error, New_Sign, vec_mag
 
 
 class Anafi_drone:
-    def __init__(self, D_IP):
+    def __init__(self, D_IP, nm):
+        
+        self.name = nm
+        loc       = "/home/spacetrex/code/Logs/"
+        tck       = str(round(time.time()))
+        lf_nm     = loc+nm+tck
         self.D_IP = D_IP
-        self.drone = olympe.Drone(self.D_IP, loglevel=0)
+        self.drone = olympe.Drone(self.D_IP, loglevel=4, logfile=open(lf_nm, "a+"))
         self.drone.connection()
         self.drone(stop_recording(cam_id=0)).wait()
         self.drone(set_camera_mode(cam_id=0, value="recording")).wait()

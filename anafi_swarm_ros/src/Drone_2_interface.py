@@ -441,9 +441,10 @@ if __name__ == '__main__':
     try:
         signal(SIGINT, Drone_land)
         global Dr_cl
-        
+
+        nm        = "Drone_2+"
         Dr_IP = "192.168.42.1"  # Real Drone
-        Dr_cl = Anafi_drone(Dr_IP)
+        Dr_cl = Anafi_drone(Dr_IP, nm)
         drone = Dr_cl.drone
         drone(stop_recording(cam_id=0))
         x0    = 5
