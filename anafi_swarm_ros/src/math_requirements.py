@@ -28,8 +28,7 @@ def quat2angle(q):
 def wrapTo2Pi(th):
     # This assumes th is an angle in [-pi, pi]
 
-    if th<0:
-        th = th + (2*pi)
+    th = th%(2*pi)
     
     return(th)
 

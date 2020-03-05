@@ -33,30 +33,14 @@ from Drone_Ops import Drone_Actns_2                  # Import Temporary Dependen
 from Cam_Ops import *
 
 # Camera Functions
+
 from olympe.messages.camera import (
     recording_progress,
     stop_recording,
     start_recording
 )
 
-
-x = 0
-y = 0
-z = 0
-
-vx = 0
-vy = 0
-vz = 0
-
-roll = 0
-pitch = 0
-yaw = 0
-
-qx = 0
-qy = 0
-qz = 0
-qw = 1
-
+x,y,z,vx,vy,vz,roll,pitch,yaw,qx,qy,qz,qw, wx, wy, wz = 0,0,0, 0,0,0, 0,0,0, 0,0,0,1, 0,0,0
 
 def poseCallback(data):
 
@@ -64,15 +48,16 @@ def poseCallback(data):
 
     # Position space
     # Translational
+
     x = data.pose.pose.position.x
     y = data.pose.pose.position.y
     z = data.pose.pose.position.z
 
     # Attitude
-    qx = data.pose.pose.orientation.x
-    qy = data.pose.pose.orientation.y
-    qz = data.pose.pose.orientation.z
-    qw = data.pose.pose.orientation.w
+    qx    = data.pose.pose.orientation.x
+    qy    = data.pose.pose.orientation.y
+    qz    = data.pose.pose.orientation.z
+    qw    = data.pose.pose.orientation.w
     q_vec = np.array([qx, qy, qz, qw])
 
     # Velocities
@@ -88,17 +73,13 @@ def poseCallback(data):
 
     roll, pitch, yaw = quat2angle(q_vec)
 
-    # rospy.loginfo("Pose recieved")
-    # print( colored(("Yaw: ", yaw*180/pi), "yellow") )
-
-    # spin() simply keeps python from exiting until this node is stopped
 
 
 def Drone_land(signal_recieved, frame):
 
     drone.stop_piloting()
     time.sleep(3)
-    X_Ref = Drone_Actns_2(5, drone)
+    Drone_Actns_2(5, drone)
     
     print("Simulation Exited")
     sys.exit(0)
@@ -106,27 +87,47 @@ def Drone_land(signal_recieved, frame):
 
 def Drone_Move_Orient(Dr_Obj, X_Ref):
 
-    global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
+    global x,  y,  z,  vx,  vy,  vz,  wx,  wy,  wz,  roll,  pitch,  yaw,  wx,  wy,  wz
+
+    X_P = [x, y, z, vx, vy, vz, roll, pitch, yaw, wx,  wy,  wz]
+    n   =  0 
 
     # Pose Subscriber:
+
     Pose_Topic = "/vicon/anafi_2/odom"
-    gn_mat  = Dr_Obj.gn_mat
-    thr_vec = Dr_Obj.thr_vec
-    X_tol   = Dr_Obj.X_tol
-    V_tol   = Dr_Obj.V_tol
-    yw_tol  = Dr_Obj.yw_tol
-    lr      = Dr_Obj.loop_rate
-    looprate = rospy.Rate(lr)
+    gn_mat     = Dr_Obj.gn_mat
+    thr_vec    = Dr_Obj.thr_vec
+    X_tol      = Dr_Obj.X_tol
+    V_tol      = Dr_Obj.V_tol
+    yw_tol     = Dr_Obj.yw_tol
+    lr         = Dr_Obj.loop_rate
+    looprate   = rospy.Rate(lr)
+    dt         = 1.0/looprate
+    eps_r      = 0.5
 
 
     while True:
-        pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
-        X_St = [x, y, z, vx, vy, vz, roll, pitch, yaw]
-        Er = np.array(X_Ref) - np.array(X_St)
-        r_er = vec_mag(Er[0:3])
-        v_er = vec_mag(Er[3:6])
+        
+
+        rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
+
+        if n==0:
+            X_St            = [x, y, z, vx, vy, vz, roll, pitch, yaw]
+
+        elif n>0:
+            X_ST =  [x, y, z, vx, vy, vz, roll, pitch, yaw, wx,  wy,  wz]
+            X_ST = drone_filter(X_ST, X_P, eps_r, dt)
+            X_St = X_ST[0:9]
+
+            
+        Er              = np.array(X_Ref) - np.array(X_St)
+        r_er            = vec_mag(Er[0:3])
+        v_er            = vec_mag(Er[3:6])
 
         drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol)
+        n+=1
+        X_P = [x, y, z, vx, vy, vz, roll, pitch, yaw, wx,  wy,  wz]
+
         if r_er<=X_tol and v_er<=V_tol:
             print( colored( ("Drone Reached!"), 'green') )
             break
@@ -139,13 +140,13 @@ def Drone_Hover(Dr_Obj, X_Ref):
 
     # Pose Subscriber:
     Pose_Topic = "/vicon/anafi_2/odom"
-    gn_mat  = Dr_Obj.gn_mat
-    thr_vec = Dr_Obj.thr_vec
-    V_tol   = Dr_Obj.V_tol
-    X_tol   = Dr_Obj.X_tol
-    yw_tol  = Dr_Obj.yw_tol
-    lr      = Dr_Obj.loop_rate
-    looprate = rospy.Rate(lr)
+    gn_mat     = Dr_Obj.gn_mat
+    thr_vec    = Dr_Obj.thr_vec
+    V_tol      = Dr_Obj.V_tol
+    X_tol      = Dr_Obj.X_tol
+    yw_tol     = Dr_Obj.yw_tol
+    lr         = Dr_Obj.loop_rate
+    looprate   = rospy.Rate(lr)
 
 
     while True:
@@ -178,6 +179,7 @@ def Drone_Center_Track(Dr_Obj, X_Ref):
     yw_tol  = Dr_Obj.yw_tol
     lr      = Dr_Obj.loop_rate
     looprate = rospy.Rate(lr)
+   
 
 
     while True:
@@ -205,8 +207,6 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
     X_tol   = Dr_Obj.X_tol
     yw_tol  = Dr_Obj.yw_tol
 
-
-
     ANAFI_MEDIA_API_URL = Dr_Obj.ANAFI_MEDIA_API_URL
     ANAFI_URL           = Dr_Obj.ANAFI_URL
 
@@ -221,7 +221,7 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
     Pose_Topic = "/vicon/anafi_2/odom"
 
-    lr       = 20
+    lr  = 20
 
     print(colored(("Loop Rate: ", lr, " Hz"),"magenta"))
     print(colored(("Travel Time: ", Tp, " s"),"magenta"))
@@ -231,16 +231,27 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
     looprate = rospy.Rate(lr)
     dt       = 1.0/lr
     X_tol    = 0.1
+    eps_r    = 0.5
 
     gn_mat = [5.5, 18, 4.3, 2, 12, 1.3]        # Controller Gains
     rec_Vid = 0
+
+    X_P = [x, y, z, vx, vy, vz, roll, pitch, yaw, wx,  wy,  wz]
+    n   =  0 
 
     photo_saved = drone(recording_progress(result="stopped", _policy="wait"))
 
     for t in np.arange(0, Tp+dt, dt):
 
-        pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
-        X_St = [x, y, z, vx, vy, vz, roll, pitch, yaw]
+        rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
+        if n==0:
+
+            X_St  = [x, y, z, vx, vy, vz, roll, pitch, yaw]
+
+        elif n>0:
+            X_ST =  [x, y, z, vx, vy, vz, roll, pitch, yaw, wx,  wy,  wz]
+            X_ST = drone_filter(X_ST, X_P, eps_r, dt)
+            X_St = X_ST[0:9]
 
         X_Ref[1] = y0 + vyT*t
         X_Ref[4] = vyT
@@ -289,6 +300,7 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
         media_info_response.raise_for_status()
         download_dir         = tempfile.mkdtemp()
         Res_dir              = filecreation()
+
         #tempfile.gettempdir()
         for resource in media_info_response.json()["resources"]:
             image_response = requests.get(ANAFI_URL + resource["url"], stream=True)
@@ -316,8 +328,6 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
         # ssh.close()
 
         # print(colored( ("File transfer to Master computer completed !!"), "cyan"))
-
-
 
 
     else:
@@ -401,9 +411,8 @@ def callback(data):
     # Gains
 
     X_Tar  = [0, 0, 1.3]
-    Vran = 1.7
+    Vran   = 1.7
 
-    acn_N  = [1, 2, 3, 4, 5, 6, 7]
     acn    = ["Take Off", "Go Home", "Hover", "Mapping", "Land", "Exit", "Record Video" ]
     n_actn = len(acn)
 
@@ -449,7 +458,7 @@ if __name__ == '__main__':
         drone(stop_recording(cam_id=0))
         x0        = 5
         print('\x1bc')
-        X_Ref = Drone_Actns_2(x0, drone)
+        X_Ref     = Drone_Actns_2(x0, drone)
 
         listener()
 

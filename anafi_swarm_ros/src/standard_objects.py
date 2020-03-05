@@ -34,7 +34,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 # Custom Functions
-from math_requirements import compute_yaw_Error, New_Sign, vec_mag
+from math_requirements import compute_yaw_Error, New_Sign, vec_mag, wrapTo2Pi
 
 
 class Anafi_drone:
@@ -373,3 +373,25 @@ def filecreation():
         if e.errno != errno.EEXIST:
             raise  # This was not a "directory exist" error
     return(mydir)
+
+def drone_filter(X_St, X_Pr, eps_r, dt):
+
+    R_P    = np.array(X_Pr[0:3])
+    V_P    = np.array(X_Pr[3:6])
+    Yaw_P  = np.array(X_Pr[8])
+    w_P    = np.array(X_Pr[11])
+
+    R_St   = np.array(X_St[0:3])
+
+    Er     = R_P  - R_St
+    r_er   = vec_mag(Er[0:3])
+
+    if r_er >= eps_r:
+        R_St  = R_P + V_P*dt
+        Yaw   = wrapTo2Pi(Yaw_P + w_P*dt)
+        X_St  = X_Pr
+        X_St[0], X_St[1], X_St[2], X_St[8], = R_St[0], R_St[1], R_St[2], Yaw
+
+    return X_St
+    
+     
