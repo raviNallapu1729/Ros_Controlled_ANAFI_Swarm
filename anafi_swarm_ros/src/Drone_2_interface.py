@@ -237,6 +237,8 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
 
     photo_saved = drone(recording_progress(result="stopped", _policy="wait"))
 
+    
+
     for t in np.arange(0, Tp+dt, dt):
 
         pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
@@ -249,6 +251,8 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
         DT = np.array(X_Tar) - np.array(X_St[0:3])
         r_tar = vec_mag(DT)
         th0 = asin(DT[2]/r_tar)*180/pi
+
+        
 
         gimbal_target(drone, th0)
         drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol)

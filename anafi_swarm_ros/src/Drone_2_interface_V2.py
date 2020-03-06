@@ -40,7 +40,7 @@ from olympe.messages.camera import (
     start_recording
 )
 
-x,y,z,vx,vy,vz,roll,pitch,yaw,qx,qy,qz,qw, wx, wy, wz = 0,0,0, 0,0,0, 0,0,0, 0,0,0,1, 0,0,0
+x,y,z,vx,vy,vz,roll,pitch,yaw,qx,qy,qz,qw, wx, wy, wz = 0.4, 1.5, 1.3, 0, 0, 0, 0, 0, 3*pi/2, 0,0,0,1, 0,0,0
 
 def poseCallback(data):
 
@@ -73,8 +73,6 @@ def poseCallback(data):
 
     roll, pitch, yaw = quat2angle(q_vec)
 
-
-
 def Drone_land(signal_recieved, frame):
 
     drone.stop_piloting()
@@ -83,7 +81,6 @@ def Drone_land(signal_recieved, frame):
     
     print("Simulation Exited")
     sys.exit(0)
-
 
 def Drone_Move_Orient(Dr_Obj, X_Ref):
 
@@ -102,7 +99,7 @@ def Drone_Move_Orient(Dr_Obj, X_Ref):
     yw_tol     = Dr_Obj.yw_tol
     lr         = Dr_Obj.loop_rate
     looprate   = rospy.Rate(lr)
-    dt         = 1.0/looprate
+    dt         = 1.0/lr
     eps_r      = 0.5
 
 
@@ -125,14 +122,13 @@ def Drone_Move_Orient(Dr_Obj, X_Ref):
         v_er            = vec_mag(Er[3:6])
 
         drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol)
-        n+=1
+        n=1
         X_P = [x, y, z, vx, vy, vz, roll, pitch, yaw, wx,  wy,  wz]
 
         if r_er<=X_tol and v_er<=V_tol:
             print( colored( ("Drone Reached!"), 'green') )
             break
         looprate.sleep()
-
 
 def Drone_Hover(Dr_Obj, X_Ref):
 
@@ -165,7 +161,6 @@ def Drone_Hover(Dr_Obj, X_Ref):
             break
         looprate.sleep()
 
-
 def Drone_Center_Track(Dr_Obj, X_Ref):
 
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
@@ -180,8 +175,6 @@ def Drone_Center_Track(Dr_Obj, X_Ref):
     lr      = Dr_Obj.loop_rate
     looprate = rospy.Rate(lr)
    
-
-
     while True:
         X_Ref[8] = wrapTo2Pi(atan2(-y, -x))
         pose_subscriber = rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
@@ -196,22 +189,22 @@ def Drone_Center_Track(Dr_Obj, X_Ref):
             break
         looprate.sleep()
 
-
 def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
 
-    Mr_IP = '192.168.8.240'        # Master IP
+    Mr_IP = '192.168.8.240'            # Master IP
 
     drone(stop_recording(cam_id=0))
 
-    thr_vec = Dr_Obj.thr_vec
-    X_tol   = Dr_Obj.X_tol
-    yw_tol  = Dr_Obj.yw_tol
+    thr_vec             = Dr_Obj.thr_vec
+    X_tol               = Dr_Obj.X_tol
+    yw_tol              = Dr_Obj.yw_tol
 
     ANAFI_MEDIA_API_URL = Dr_Obj.ANAFI_MEDIA_API_URL
     ANAFI_URL           = Dr_Obj.ANAFI_URL
 
 
     Drone_Move_Orient(Dr_Obj, X_Ref)
+
     print(colored( ("Moved home, executing map command!"), "green"))
     time.sleep(0.5)
 
@@ -221,11 +214,12 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
     Pose_Topic = "/vicon/anafi_2/odom"
 
-    lr  = 20
+    lr  = 10.0
 
     print(colored(("Loop Rate: ", lr, " Hz"),"magenta"))
     print(colored(("Travel Time: ", Tp, " s"),"magenta"))
     print(colored(("Velocity: ", vyT, " m/s"),"magenta"))
+    print(colored(("Distance threshhold: ", 1.001*ran_V),"blue"))
 
     
     looprate = rospy.Rate(lr)
@@ -233,7 +227,7 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
     X_tol    = 0.1
     eps_r    = 0.5
 
-    gn_mat = [5.5, 18, 4.3, 2, 12, 1.3]        # Controller Gains
+    gn_mat = [9.0, 18.0, 9.0, 18.0, 1.0, 4.0, 1.2]        # Controller Gains
     rec_Vid = 0
 
     X_P = [x, y, z, vx, vy, vz, roll, pitch, yaw, wx,  wy,  wz]
@@ -244,42 +238,46 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
     for t in np.arange(0, Tp+dt, dt):
 
         rospy.Subscriber(Pose_Topic, Odometry, poseCallback)
+
         if n==0:
 
             X_St  = [x, y, z, vx, vy, vz, roll, pitch, yaw]
+            n=1
 
         elif n>0:
             X_ST =  [x, y, z, vx, vy, vz, roll, pitch, yaw, wx,  wy,  wz]
             X_ST = drone_filter(X_ST, X_P, eps_r, dt)
+            X_P  = X_ST
             X_St = X_ST[0:9]
 
         X_Ref[1] = y0 + vyT*t
         X_Ref[4] = vyT
         X_Ref[8] = wrapTo2Pi(atan2(-y, -x))
 
-        DT = np.array(X_Tar) - np.array(X_St[0:3])
+        DT    = np.array(X_Tar) - np.array(X_St[0:3])
         r_tar = vec_mag(DT)
-        th0 = asin(DT[2]/r_tar)*180/pi
+        th0   = asin(DT[2]/r_tar)*180/pi
 
         gimbal_target(drone, th0)
         drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol)
-        print(colored(("Distance to target: ", r_tar),"red"))
-        print(colored(("Record Status: ", rec_Vid),"red"))
-        print(colored(("Distance threshhold: ", 1.01*ran_V),"blue"))
+       
+        # print(colored(("Distance to target: ", r_tar),"red"))
+        # print(colored(("Record Status: ", rec_Vid),"red"))
+        # print(colored(("Distance threshhold: ", 1.001*ran_V),"blue"))
         # print(colored(("Gimbal angle computed: ", th0),"blue"))
 
-        if r_tar<=1.01*ran_V and rec_Vid == 0:
+        if r_tar<=1.001*ran_V and rec_Vid == 0:
             rec_Vid = 1
             drone(start_recording(cam_id=0))
             print(colored( ("Recording Started"), "blue"))
 
-        elif r_tar>1.01*ran_V and rec_Vid == 1:
+        elif r_tar>1.001*ran_V and rec_Vid == 1:
             rec_Vid = 2
             print(colored( ("Recording Completed"), "blue"))
             drone(stop_recording(cam_id=0))
             photo_saved.wait()
-
         looprate.sleep()
+
 
     print(colored( ("Current Time: ", t, "sec"),"cyan"))
     print(colored( ("Targetted End Y: ", X_Ref[1], "m/s"),"cyan"))
@@ -302,6 +300,7 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
         Res_dir              = filecreation()
 
         #tempfile.gettempdir()
+
         for resource in media_info_response.json()["resources"]:
             image_response = requests.get(ANAFI_URL + resource["url"], stream=True)
             download_path = os.path.join(download_dir, resource["resource_id"])
@@ -326,16 +325,12 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
 
         # sftp_client.close()
         # ssh.close()
-
         # print(colored( ("File transfer to Master computer completed !!"), "cyan"))
 
 
     else:
         print(colored( ("No Recording obtained!!"), "red"))
     print(colored( ("Mapping done!! Holding drone at Final Desitination!"), "green"))
-
-
-
 
 def Record_Transmit(Dr_Obj):
 
@@ -398,8 +393,8 @@ def Record_Transmit(Dr_Obj):
     ssh.close()
     print(colored( ("File transfer to Master computer completed !!"), "cyan"))
 
-
 def callback(data):
+
     global Dr_cl
     global drone
 
@@ -408,10 +403,9 @@ def callback(data):
     print("DATA:", data.data)
     x0 = data.data
 
-    # Gains
 
-    X_Tar  = [0, 0, 1.3]
-    Vran   = 1.7
+    X_Tar  = [0, 0, 1.19]
+    Vran   = 1.09
 
     acn    = ["Take Off", "Go Home", "Hover", "Mapping", "Land", "Exit", "Record Video" ]
     n_actn = len(acn)
@@ -436,31 +430,31 @@ def callback(data):
     else:
         print( colored( ('Invalid action selected, please select again! \n'), "red" ))
 
-
 def listener():
-    rospy.init_node('anafi_2_listener', anonymous=True)
 
+    rospy.init_node('anafi_2_listener', anonymous=True)
     #this topic needs to be changed for each computer
     rospy.Subscriber("anafi_2/master", Int16, callback)
-
     rospy.spin()
-
 
 if __name__ == '__main__':
     try:
+
         signal(SIGINT, Drone_land)
         global Dr_cl
 
         nm        = "Drone_2+"
+        lr        = 10.0
         Dr_IP     = "192.168.42.1"  # Real Drone
-        Dr_cl     = Anafi_drone(Dr_IP, nm)
+        Dr_cl     = Anafi_drone(Dr_IP, nm, lr)
         drone     = Dr_cl.drone
         drone(stop_recording(cam_id=0))
         x0        = 5
+
         print('\x1bc')
         X_Ref     = Drone_Actns_2(x0, drone)
 
         listener()
 
     except rospy.ROSInterruptException:
-        rospy.loginfo("node terminated")
+        rospy.loginfo(" node terminated ")

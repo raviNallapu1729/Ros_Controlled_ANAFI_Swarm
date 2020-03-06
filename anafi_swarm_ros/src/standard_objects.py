@@ -38,28 +38,29 @@ from math_requirements import compute_yaw_Error, New_Sign, vec_mag, wrapTo2Pi
 
 
 class Anafi_drone:
-    def __init__(self, D_IP, nm):
+    def __init__(self, D_IP, nm, lr):
         
         self.name = nm
         loc       = "/home/spacetrex/code/Logs/"
         tck       = str(round(time.time()))
         lf_nm     = loc+nm+tck
         self.D_IP = D_IP
-        self.drone = olympe.Drone(self.D_IP, loglevel=4, logfile=open(lf_nm, "a+"))
+        #self.drone = olympe.Drone(self.D_IP, loglevel=7, logfile=open(lf_nm, "a+"))
+        self.drone = olympe.Drone(self.D_IP, loglevel=0)
         self.drone.connection()
         self.drone(stop_recording(cam_id=0)).wait()
         self.drone(set_camera_mode(cam_id=0, value="recording")).wait()
 
-        self.loop_rate = 30.0                           # Set loop rate (Hz)
+        self.loop_rate = lr                             # Set loop rate (Hz)
         self.X_tol     = 0.5                            # Position tolerance (m)
         self.V_tol     = 0.1                            # Velocity tolerance(m/s)
-        self.yw_tol    = 2*pi/180                       # Yaw rate tolerance (rads)
+        self.yw_tol    = 2.0*pi/180.0                     # Yaw rate tolerance (rads)
         self.Tt_MX     = 10                             # Max tilt setting for yaw and pitch (deg)
         self.Tl_Mx     = 4                              # Max vertical speed (m/s)
         self.YR_MX     = 22                             # Max yaw rate (deg/s)
-        self.GB_MX     = 50                             # Max gimbal rate (deg/s)
-        self.thr_vec = [self.Tt_MX, self.Tt_MX, self.Tl_Mx, self.YR_MX] # Drone settings
-        self.gn_mat = [3.6, 18, 4, 5, 9, 2]        # Controller Gains
+        self.GB_MX     = 50                                               # Max gimbal rate (deg/s)
+        self.thr_vec   = [self.Tt_MX, self.Tt_MX, self.Tl_Mx, self.YR_MX] # Drone settings
+        self.gn_mat    = [3.6, 18.0, 3.6, 18.0, 5.0, 9.0, 2.0]                      # Controller Gains
         #self.gn_mat = [6, 18, 4, 5, 11, 2]
         self.ANAFI_IP = D_IP   # Real Drone
 
@@ -173,27 +174,33 @@ def drone_center(drone, X_St, X_Ref, gn_mat, thr_vec, X_tol, yw_tol):
     r_er = vec_mag(Er[0:3])
     Y_ER = compute_yaw_Error(yaw_R, yaw_dr)
 
-    # print(colored(("Position error: ", r_er),"red"))
-    # print(colored(("Yaw error: ", Y_ER),"red"))
+    # 
 
-
-    if r_er>=X_tol or abs(Y_ER)>=yw_tol:
-
-        UR, UP, UTh, UYr = PCMD_Controller(X_St, X_Ref, gn_mat, thr_vec)
+    UR, UP, UTh, UYr = PCMD_Controller(X_St, X_Ref, gn_mat, thr_vec)
         
-        # drone(PCMD(1, UR, UP, UYr, UTh , 0))
-        drone.start_piloting()
-        drone.piloting_pcmd(UR, UP, UYr, UTh , 0)
+    # drone(PCMD(1, UR, UP, UYr, UTh , 1))
+
+    drone.start_piloting()
+    drone.piloting_pcmd(UR, UP, UYr, UTh , 0)
+
+
+    # if r_er>=X_tol or abs(Y_ER)>=yw_tol:
+
+    #     UR, UP, UTh, UYr = PCMD_Controller(X_St, X_Ref, gn_mat, thr_vec)
+        
+    #     # drone(PCMD(1, UR, UP, UYr, UTh , 0))
+    #     drone.start_piloting()
+    #     drone.piloting_pcmd(UR, UP, UYr, UTh , 0)
 
         
-        # print(colored(("Drone position: ", x_dr, y_dr, z_dr, yaw_dr*180/pi),"yellow"))
-        # print(colored(("Target position: ", x_R, y_R, z_R, yaw_R*180/pi),"green"))
-        # print(colored(("Controller sent commands: ", UR, UP, UYr, UTh),"cyan"))
+    #     # print(colored(("Drone position: ", x_dr, y_dr, z_dr, yaw_dr*180/pi),"yellow"))
+    #     # print(colored(("Target position: ", x_R, y_R, z_R, yaw_R*180/pi),"green"))
+    #     # print(colored(("Controller sent commands: ", UR, UP, UYr, UTh),"cyan"))
 
-    else:
-        print(colored(("Drone near target, no command sent"),"cyan"))
-        print(colored(("Drone position: ", x_dr, y_dr, z_dr, yaw_dr*180/pi),"yellow"))
-        print(colored(("Target position: ", x_R, y_R, z_R, yaw_R*180/pi),"green"))
+    # else:
+    #     print(colored(("Drone near target, no command sent"),"cyan"))
+    #     print(colored(("Drone position: ", x_dr, y_dr, z_dr, yaw_dr*180/pi),"yellow"))
+    #     print(colored(("Target position: ", x_R, y_R, z_R, yaw_R*180/pi),"green"))
 
 
 def PCMD_Controller(state_Vec, ref_Vec, gn_mat, thr_vec):
@@ -206,11 +213,18 @@ def PCMD_Controller(state_Vec, ref_Vec, gn_mat, thr_vec):
     Ur_U  =    Uxyz[1]
     UTh_U =    Uxyz[2]
     Uyr_U =    Uyaw
+
+
     
     com_vec = np.array([Ur_U, Up_U, UTh_U, Uyr_U])
 
     # Obtain Saturated and capped commands
     Ur, Up, UTh, Uyr = check_PCMD_Sat(com_vec, thr_vec)
+
+    # print(' ')
+    # print(colored(("pitch:     ", int(Up)),    "cyan"))
+    # print(colored(("roll:    ", int(Ur)),    "cyan"))
+    # print(colored(("vertical:      ", int(UTh)),   "cyan"))
 
     return int(Ur), int(Up), int(UTh), int(Uyr)
 
@@ -222,11 +236,13 @@ def check_PCMD_Sat(com_vec, thr_vec):
 
     for i in range(l-1):
         if abs(com_vec[i]) <= thr_vec[i] and  abs(com_vec[i]) >= 0.01 :
-            ve[i] = int(18*com_vec[i]/thr_vec[i])
-        elif abs(com_vec[i]) < 0.01:
+            ve[i] = int(20*com_vec[i]/thr_vec[i])
+
+        elif abs(com_vec[i]) < 0.001:
             ve[i] = 0
+
         else:
-            ve[i] = int(18*New_Sign(com_vec[i]))
+            ve[i] = int(20*New_Sign(com_vec[i]))
 
     i = l-1
     if abs(com_vec[i]) <= thr_vec[i]:
@@ -275,29 +291,32 @@ def R3_Mat_Drone_Commands(state_Vec, ref_Vec, gn_mat):
     vx_ER   = vx_R - vx_dr
     vy_ER   = vy_R - vy_dr
     vz_ER   = vz_R - vz_dr
-    yaw_ER = compute_yaw_Error(yaw_R, yaw_dr)
+    yaw_ER  = compute_yaw_Error(yaw_R, yaw_dr)
 
     # Gains
     g1 = gn_mat[0]
     g2 = gn_mat[1]
+    g3 = gn_mat[2]
     g4 = gn_mat[3]
     g5 = gn_mat[4]
     g6 = gn_mat[5]
+    g7 = gn_mat[6]
 
     # Holonomic  Controls
     Ux   =    (g1*x_ER + g2*vx_ER)
-    Uy   =   -(g1*y_ER + g2*vy_ER)
-    Uz   =     g4*z_ER + g5*vz_ER
-    Uyaw =   -g6*yaw_ER*180/pi
+    Uy   =   -(g3*y_ER + g4*vy_ER)
+    Uz   =     g5*z_ER + g6*vz_ER
+    Uyaw =   -g7*yaw_ER*180/pi
 
     d_in = np.array([Ux, Uy, Uz])
-    R3 = np.array([[cos(th_R1), -sin(th_R1), 0], [sin(th_R1), cos(th_R1), 0], [0, 0, 1]])
-    dv2 = R3.dot(d_in)  # Drone frame commands
+    R3   = np.array([[cos(th_R1), -sin(th_R1), 0], [sin(th_R1), cos(th_R1), 0], [0, 0, 1]])
+    dv2  = R3.dot(d_in)  # Drone frame commands
 
     return dv2, Uyaw
 
 
 def gimbal_target(drone, abs_ang):
+
         drone(set_target(gimbal_id = 0, control_mode = "position", yaw_frame_of_reference = "absolute", yaw = 0, 
         pitch_frame_of_reference = "absolute", pitch = abs_ang,  roll_frame_of_reference ="absolute", roll = 0))
 
@@ -340,24 +359,32 @@ def R3_Mat_Drone_Commands_track(state_Vec, ref_Vec, gn_mat):
     # Gains
     g1 = gn_mat[0]
     g2 = gn_mat[1]
+    g3 = gn_mat[2]
     g4 = gn_mat[3]
     g5 = gn_mat[4]
     g6 = gn_mat[5]
+    g7 = gn_mat[7]
 
     # Holonomic  Controls
     Ux   =    (g1*x_ER + g2*vx_ER)
-    Uy   =   -(g1*y_ER + g2*vy_ER)
-    Uz   =     g4*z_ER + g5*vz_ER
-    Uyaw =   -g6*yaw_ER*180/pi
+    Uy   =   -(g3*y_ER + g4*vy_ER)
+    Uz   =     g5*z_ER + g6*vz_ER
+    Uyaw =   -g7*yaw_ER*180.0/pi
 
     d_in = np.array([Ux, Uy, Uz])
-    R3 = np.array([[cos(th_R1), -sin(th_R1), 0], [sin(th_R1), cos(th_R1), 0], [0, 0, 1]])
-    dv2 = R3.dot(d_in)  # Drone frame commands
+    R3   = np.array([[cos(th_R1), -sin(th_R1), 0], [sin(th_R1), cos(th_R1), 0], [0, 0, 1]])
+    dv2  = R3.dot(d_in)  # Drone frame commands
+
+
+
 
     return dv2, Uyaw
 
 
 def gimbal_target(drone, abs_ang):
+
+        # print(' ')
+        # print(colored(("Gimbal angle:     ", abs_ang),   "green"))
         drone(set_target(gimbal_id = 0, control_mode = "position", yaw_frame_of_reference = "absolute", yaw = 0, 
         pitch_frame_of_reference = "absolute", pitch = abs_ang,  roll_frame_of_reference ="absolute", roll = 0))
 
@@ -387,6 +414,9 @@ def drone_filter(X_St, X_Pr, eps_r, dt):
     r_er   = vec_mag(Er[0:3])
 
     if r_er >= eps_r:
+
+        print( colored( ("State Rejected: ", r_er), 'green' ) )
+        print( colored( ("Threshold: ", eps_r), 'green' )) 
         R_St  = R_P + V_P*dt
         Yaw   = wrapTo2Pi(Yaw_P + w_P*dt)
         X_St  = X_Pr
