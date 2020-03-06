@@ -95,7 +95,6 @@ def Drone_Actn(xa, drone):
 	
 	return X_Ref
 
-
 def Drone_Actns_2(xa, drone):
 	
 	X_Ref = []
@@ -162,13 +161,12 @@ def Drone_Actns_2(xa, drone):
 def Drone_Actns_3(xa, drone):
 	
 	X_Ref = []
-	X_Home = [-1.5,  2.7, 0.75, 0, 0, 0, 0, 0, 3*pi/2]
-	X_End  = [-1.5, -1.98, 0.75, 0, 0, 0, 0, 0, 3*pi/2]
-	DX     = X_End[1] - X_Home[1]
-	Tp     = 45
-	Vy     = DX/Tp
+	X_Home = [-0.9,  1, 1.3, 0, 0, 0, 0, 0, 3*pi/2]
+	X_End  = [-0.9, -1, 1.3, 0, 0, 0, 0, 0, 3*pi/2]
 
-	
+	DX     = X_End[1] - X_Home[1]
+	Tp     = 90
+	Vy     = DX/Tp
 
 
 	if xa==1:

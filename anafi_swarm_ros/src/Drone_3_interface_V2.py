@@ -29,7 +29,7 @@ from nav_msgs.msg import Odometry
 from math_requirements import quat2angle, vec_mag, wrapTo2Pi    # Conversions
 from Console_text import  Print_Drone_Actns          # Import Text Files
 from standard_objects import *                       # Import Drone Class
-from Drone_Ops import Drone_Actns_2                  # Import Temporary Dependencies
+from Drone_Ops import Drone_Actns_3                  # Import Temporary Dependencies
 from Cam_Ops import *
 
 # Camera Functions
@@ -40,7 +40,7 @@ from olympe.messages.camera import (
     start_recording
 )
 
-x,y,z,vx,vy,vz,roll,pitch,yaw,qx,qy,qz,qw, wx, wy, wz = 0.4, 1.5, 1.3, 0, 0, 0, 0, 0, 3*pi/2, 0,0,0,1, 0,0,0
+x,y,z,vx,vy,vz,roll,pitch,yaw,qx,qy,qz,qw, wx, wy, wz = -0.9, 1, 1.3, 0, 0, 0, 0, 0, 3*pi/2, 0,0,0,1, 0,0,0
 
 def poseCallback(data):
 
@@ -77,7 +77,7 @@ def Drone_land(signal_recieved, frame):
 
     drone.stop_piloting()
     time.sleep(3)
-    Drone_Actns_2(5, drone)
+    Drone_Actns_3(5, drone)
     
     print("Simulation Exited")
     sys.exit(0)
@@ -91,7 +91,7 @@ def Drone_Move_Orient(Dr_Obj, X_Ref):
 
     # Pose Subscriber:
 
-    Pose_Topic = "/vicon/anafi_2/odom"
+    Pose_Topic = "/vicon/anafi_3/odom"
     gn_mat     = Dr_Obj.gn_mat
     thr_vec    = Dr_Obj.thr_vec
     X_tol      = Dr_Obj.X_tol
@@ -135,7 +135,7 @@ def Drone_Hover(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_2/odom"
+    Pose_Topic = "/vicon/anafi_3/odom"
     gn_mat     = Dr_Obj.gn_mat
     thr_vec    = Dr_Obj.thr_vec
     V_tol      = Dr_Obj.V_tol
@@ -166,7 +166,7 @@ def Drone_Center_Track(Dr_Obj, X_Ref):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
 
     # Pose Subscriber:
-    Pose_Topic = "/vicon/anafi_2/odom"
+    Pose_Topic = "/vicon/anafi_3/odom"
     gn_mat  = Dr_Obj.gn_mat
     thr_vec = Dr_Obj.thr_vec
     X_tol   = Dr_Obj.X_tol
@@ -212,9 +212,9 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
     y0     = X_Ref[1]
 
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
-    Pose_Topic = "/vicon/anafi_2/odom"
+    Pose_Topic = "/vicon/anafi_3/odom"
 
-    lr  = 10.0
+    lr  = 11.0
 
     print(colored(("Loop Rate: ", lr, " Hz"),"magenta"))
     print(colored(("Travel Time: ", Tp, " s"),"magenta"))
@@ -318,7 +318,7 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
         # ssh.connect(hostname= Mr_IP, username = 'spacetrex',password ='spacetrex',port= 22)
         # sftp_client = ssh.open_sftp()
         # loc_path = download_path
-        # rem_path = '/home/spacetrex/Results/ANAFI_2.MP4'
+        # rem_path = '/home/spacetrex/Results/ANAFI_3.MP4'
 
         # print(colored( ("Starting transfer to Master Computer"), "cyan"))
         # sftp_client.put(loc_path, rem_path)
@@ -382,7 +382,7 @@ def Record_Transmit(Dr_Obj):
     sftp_client = ssh.open_sftp()
 
     #rem_path = '/home/spacetrex/Results/'+ media_id+'.MP4'
-    rem_path = '/home/spacetrex/Results/ANAFI_2.MP4'
+    rem_path = '/home/spacetrex/Results/ANAFI_3.MP4'
     loc_path = download_path
 
 
@@ -413,7 +413,7 @@ def callback(data):
     if x0<=n_actn:
         
         print( colored( ('Starting action: ' +  acn[x0-1] + '\n'), "green") )
-        X_Ref, Tp, vyT, X_End = Drone_Actns_2(x0, drone)
+        X_Ref, Tp, vyT, X_End = Drone_Actns_3(x0, drone)
 
         if x0==2:
             Drone_Move_Orient(Dr_cl, X_Ref)
@@ -432,9 +432,9 @@ def callback(data):
 
 def listener():
 
-    rospy.init_node('anafi_2_listener', anonymous=True)
+    rospy.init_node('anafi_3_listener', anonymous=True)
     #this topic needs to be changed for each computer
-    rospy.Subscriber("anafi_2/master", Int16, callback)
+    rospy.Subscriber("anafi_3/master", Int16, callback)
     rospy.spin()
 
 if __name__ == '__main__':
@@ -443,8 +443,8 @@ if __name__ == '__main__':
         signal(SIGINT, Drone_land)
         global Dr_cl
 
-        nm        = "Drone_2"
-        lr        = 10.0
+        nm        = "Drone_3"
+        lr        = 11.0
         Dr_IP     = "192.168.42.1"  # Real Drone
         Dr_cl     = Anafi_drone(Dr_IP, nm, lr)
         drone     = Dr_cl.drone
@@ -452,7 +452,7 @@ if __name__ == '__main__':
         x0        = 5
 
         print('\x1bc')
-        X_Ref     = Drone_Actns_2(x0, drone)
+        X_Ref     = Drone_Actns_3(x0, drone)
 
         listener()
 
