@@ -214,8 +214,10 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
     global x, y, z, vx, vy, vz, wx, wy, wz, roll, pitch, yaw
     Pose_Topic = "/vicon/anafi_2/odom"
 
-    lr  = 10.0
+    lr  = 11.0
 
+    time.sleep(5.0)
+    
     print(colored(("Loop Rate: ", lr, " Hz"),"magenta"))
     print(colored(("Travel Time: ", Tp, " s"),"magenta"))
     print(colored(("Velocity: ", vyT, " m/s"),"magenta"))
@@ -234,6 +236,8 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
     n   =  0 
 
     photo_saved = drone(recording_progress(result="stopped", _policy="wait"))
+
+    
 
     for t in np.arange(0, Tp+dt, dt):
 
@@ -444,7 +448,7 @@ if __name__ == '__main__':
         global Dr_cl
 
         nm        = "Drone_2"
-        lr        = 10.0
+        lr        = 11.0
         Dr_IP     = "192.168.42.1"  # Real Drone
         Dr_cl     = Anafi_drone(Dr_IP, nm, lr)
         drone     = Dr_cl.drone
