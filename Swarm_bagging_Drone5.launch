@@ -1,0 +1,14 @@
+<launch>
+
+	
+<node pkg="anafi_swarm_ros"
+	type="swarm_master_final.py"
+	name="drone_operate"
+	output="screen"/>
+
+<node pkg="rosbag" 
+	type="record"
+	name="reocrd_topic"  
+	args="-a -O /home/spacetrex/catkin_ws/src/Ros_Controlled_ANAFI_Swarm/bagfile/bagfiles.bag"/>
+
+</launch>
