@@ -326,11 +326,11 @@ def Setup_Video_mode(drone):
         set_recording_mode(
             cam_id=0,
             mode="standard",
-            resolution="res_480p",
-            framerate="fps_24",
+            resolution="res_uhd_4k",
+            framerate="fps_30",
             hyperlapse="ratio_15",
         )
-    ).wait()
+    ).wait(_timeout=2.).success()
 
 
 

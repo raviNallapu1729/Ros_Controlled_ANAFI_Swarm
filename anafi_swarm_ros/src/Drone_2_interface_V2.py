@@ -347,6 +347,7 @@ def Record_Transmit(Dr_Obj):
     ANAFI_URL           = Dr_Obj.ANAFI_URL
     photo_saved         = drone(recording_progress(result="stopped", _policy="wait"))
     
+    Setup_Video_mode(drone)
     drone(start_recording(cam_id=0))
     print(colored( ("Recording Started"), "blue"))
 
@@ -379,23 +380,23 @@ def Record_Transmit(Dr_Obj):
         print(colored( ("File transfer to Drone computer completed !!"), "green"))
 
 
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    # ssh = paramiko.SSHClient()
+    # ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    ssh.connect(hostname= Mr_IP, username = 'spacetrex',password ='spacetrex',port= 22)
-    sftp_client = ssh.open_sftp()
+    # ssh.connect(hostname= Mr_IP, username = 'spacetrex',password ='spacetrex',port= 22)
+    # sftp_client = ssh.open_sftp()
 
-    #rem_path = '/home/spacetrex/Results/'+ media_id+'.MP4'
-    rem_path = '/home/spacetrex/Results/ANAFI_2.MP4'
-    loc_path = download_path
+    # #rem_path = '/home/spacetrex/Results/'+ media_id+'.MP4'
+    # rem_path = '/home/spacetrex/Results/ANAFI_2.MP4'
+    # loc_path = download_path
 
 
-    print(colored( ("Starting transfer to Master Computer"), "cyan"))
-    sftp_client.put(loc_path, rem_path)
+    # print(colored( ("Starting transfer to Master Computer"), "cyan"))
+    # sftp_client.put(loc_path, rem_path)
    
-    sftp_client.close()
-    ssh.close()
-    print(colored( ("File transfer to Master computer completed !!"), "cyan"))
+    # sftp_client.close()
+    # ssh.close()
+    # print(colored( ("File transfer to Master computer completed !!"), "cyan"))
 
 def callback(data):
 
