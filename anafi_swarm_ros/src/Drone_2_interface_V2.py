@@ -208,6 +208,8 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
     print(colored( ("Moved home, executing map command!"), "green"))
     time.sleep(0.5)
 
+    Setup_Video_mode(drone)
+
     X_Ref2 = X_Ref
     y0     = X_Ref[1]
 
@@ -216,7 +218,7 @@ def Drone_Map_Opn2(Dr_Obj, X_Ref, X_Tar, ran_V, Tp, vyT, X_End):
 
     lr  = 11.0
 
-    time.sleep(5.0)
+    time.sleep(10.0)
     
     print(colored(("Loop Rate: ", lr, " Hz"),"magenta"))
     print(colored(("Travel Time: ", Tp, " s"),"magenta"))
