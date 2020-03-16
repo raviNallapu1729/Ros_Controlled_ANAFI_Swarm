@@ -9,6 +9,6 @@
 <node pkg="rosbag" 
 	type="record"
 	name="reocrd_topic"  
-	args="-a -O /home/spacetrex/catkin_ws/src/Ros_Controlled_ANAFI_Swarm/bagfile/bagfiles.bag"/>
+	args="-a -o /home/spacetrex/catkin_ws/src/Ros_Controlled_ANAFI_Swarm/bagfile/session.bag"/>
 
 </launch>

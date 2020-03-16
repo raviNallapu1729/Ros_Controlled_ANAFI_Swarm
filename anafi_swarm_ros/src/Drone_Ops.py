@@ -98,10 +98,10 @@ def Drone_Actn(xa, drone):
 def Drone_Actns_2(xa, drone):
 	
 	X_Ref = []
-	X_Home = [0.4, 1.5, 1.3, 0, 0, 0, 0, 0, 3*pi/2]
-	X_End  = [0.4,-1.5, 1.3, 0, 0, 0, 0, 0, 3*pi/2]
+	X_Home = [0.8, 2.0, 1.2, 0, 0, 0, 0, 0, 3*pi/2]
+	X_End  = [0.8,-2.0, 1.2, 0, 0, 0, 0, 0, 3*pi/2]
 	DX     = X_End[1] - X_Home[1]
-	Tp     = 90
+	Tp     = 78.0
 	Vy     = DX/Tp
 
 	
@@ -161,11 +161,11 @@ def Drone_Actns_2(xa, drone):
 def Drone_Actns_3(xa, drone):
 	
 	X_Ref = []
-	X_Home = [-0.9,  1, 1.3, 0, 0, 0, 0, 0, 3*pi/2]
-	X_End  = [-0.9, -1, 1.3, 0, 0, 0, 0, 0, 3*pi/2]
+	X_Home = [-0.7,  2.0, 2.3, 0, 0, 0, 0, 0, 3*pi/2]
+	X_End  = [-0.7, -2.0, 2.3, 0, 0, 0, 0, 0, 3*pi/2]
 
 	DX     = X_End[1] - X_Home[1]
-	Tp     = 90
+	Tp     = 108.0
 	Vy     = DX/Tp
 
 

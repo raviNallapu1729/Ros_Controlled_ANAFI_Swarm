@@ -40,7 +40,7 @@ from olympe.messages.camera import (
     start_recording
 )
 
-x,y,z,vx,vy,vz,roll,pitch,yaw,qx,qy,qz,qw, wx, wy, wz = 0.4, 1.5, 1.3, 0, 0, 0, 0, 0, 3*pi/2, 0,0,0,1, 0,0,0
+x,y,z,vx,vy,vz,roll,pitch,yaw,qx,qy,qz,qw, wx, wy, wz = 0.8, 2.0, 1.2, 0, 0, 0, 0, 0, 3*pi/2, 0,0,0,1, 0,0,0
 
 def poseCallback(data):
 
@@ -413,7 +413,7 @@ def callback(data):
 
 
     X_Tar  = [0, 0, 1.19]
-    Vran   = 1.09
+    Vran   = 1.723
 
     acn    = ["Take Off", "Go Home", "Hover", "Mapping", "Land", "Exit", "Record Video" ]
     n_actn = len(acn)
